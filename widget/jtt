@@ -1,0 +1,6 @@
+#!/data/data/com.termux/files/usr/bin/bash
+PERL5LIB="/data/data/com.termux/files/home/perl5/lib/perl5${PERL5LIB:+:${PERL5LIB}}"; export PERL5LIB;
+
+echo `dirname $0`
+
+#perl $HOME/jtt/jtt
