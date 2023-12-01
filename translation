@@ -1,0 +1,212 @@
+# It's the translation file for Job time tracker
+# Use LANG_CODE:group:name:value syntax.
+
+# Week days
+EN:wdays:0:Su
+RU:wdays:0:Вс
+
+EN:wdays:1:Mo
+RU:wdays:1:Пн
+
+EN:wdays:2:Tu
+RU:wdays:2:Вт
+
+EN:wdays:3:We
+RU:wdays:3:Ср
+
+EN:wdays:4:Th
+RU:wdays:4:Чт
+
+EN:wdays:5:Fr
+RU:wdays:5:Пт
+
+EN:wdays:6:Sa
+RU:wdays:6:Сб
+
+# HEADERS
+# main
+EN:main_screen:header:Job time tracker
+RU:main_screen:header:Job time tracker
+
+# open_another_file
+EN:oaf_screen:header:Open another file
+RU:oaf_screen:header:Открыть файл
+
+# edit_line
+EN:el_screen:header:Edit line
+RU:el_screen:header:Изменить строку
+
+# remove_line
+EN:rm_screen:header:Remove line
+RU:rm_screen:header:Удалить строку
+
+# configuration
+EN:conf_screen:header:Configure
+RU:conf_screen:header:Конфигурация
+
+# MENUS
+# main
+EN:main_screen:add:[a]dd new 
+RU:main_screen:add:[a]добавить
+
+EN:main_screen:edit:[e]dit line 
+RU:main_screen:edit:[e]изменить
+
+EN:main_screen:remove:[r]emove line 
+RU:main_screen:remove:[r]удалить
+
+EN:main_screen:open:[o]pen file 
+RU:main_screen:open:[o]открыть
+
+EN:main_screen:help:[h]elp 
+RU:main_screen:help:[h]помощь
+
+EN:main_screen:quit:[q]uit
+RU:main_screen:quit:[q]выход
+
+# open_another_file
+EN:oaf_screen:file:file name
+RU:oaf_screen:file:имя файла
+
+EN:oaf_screen:new:[n]ew
+RU:oaf_screen:new:[n]новый
+
+EN:oaf_screen:quit:[q]uit 
+RU:oaf_screen:quit:[q]выход
+
+# edit_line
+EN:el_screen:line:line num
+RU:el_screen:line:номер строки
+
+EN:el_screen:quit:[q]uit
+RU:el_screen:quit:[q]выход
+
+# remove_line
+EN:rm_screen:line:line num
+RU:rm_screen:line:номер строки
+
+EN:rm_screen:quit:[q]uit
+RU:rm_screen:quit:[q]выход
+
+# configuration
+EN:conf_screen:param:param
+RU:conf_screen:param:параметр
+
+EN:conf_screen:auto:[a]uto
+RU:conf_screen:auto:[a]авто
+
+EN:conf_screen:quit:[q]uit
+RU:conf_screen:quit:[q]выход
+
+# Main
+EN:main:salary:salary
+RU:main:salary:оклад
+
+EN:main:d_h:D/H
+RU:main:d_h:Д/Ч
+
+EN:main:per_h:perH
+RU:main:per_h:заЧас
+
+EN:main:tax_sum:tax
+RU:main:tax_sum:налог
+
+EN:main:total_h:totH
+RU:main:total_h:всеЧ
+
+EN:main:total_nh:nH
+RU:main:total_nh:ночн
+
+EN:main:dirty:total
+RU:main:dirty:грязн
+
+EN:main:clear:clear
+RU:main:clear:чист
+
+EN:main:fact:fact
+RU:main:fact:факт
+
+
+# Date
+EN:date:sd:Set date
+RU:date:sd:Введите дату
+
+EN:date:set:Set
+RU:date:set:Введите
+
+# Params
+EN:params:salary:salary
+RU:params:salary:оклад
+
+EN:params:bonus:bonus
+RU:params:bonus:премия
+
+EN:params:dprise:dprise
+RU:params:dprise:вредность
+
+EN:params:tax:tax
+RU:params:tax:налог
+
+EN:params:file_name:file name
+RU:params:file_name:имя файла
+
+EN:params:first:first
+RU:params:first:аванс
+
+EN:params:second:second
+RU:params:second:получка
+
+EN:params:relax:relax
+RU:params:relax:отпускные
+
+EN:params:period:period
+RU:params:period:период
+
+# Another
+EN:another:el_screen:Edit this line? Enter or 'q' 
+RU:another:el_screen:Изменить эту строку? Ввод или 'q'
+
+EN:another:rm_screen:Remove this line? Enter or 'q' 
+RU:another:rm_screen:Удалить эту строку? Ввод или 'q'
+
+EN:another:oaf_screen:Enter new file name
+RU:another:oaf_screen:Введите имя нового файла
+
+# Actions
+EN:actions:open_another_file:File or 'q' or 'n' to making new
+RU:actions:open_another_file:Файл или 'q' или 'n' чтобы создать новый
+
+EN:actions:edit_line:Line number or 'q'
+RU:actions:edit_line:Номер строки или 'q'
+
+EN:actions:remove_line:Line number or 'q'
+RU:actions:remove_line:Номер строки или 'q'
+
+EN:actions:configure:Param or 'q' or 'a'
+RU:actions:configure:Параметр или 'q' или 'a'
+
+# Warns
+EN:warn:ii:Incorrect input!
+RU:warn:ii:Неверный ввод!
+
+EN:warn:uc:Unknown command!
+RU:warn:uc:Неизвестная команда!
+
+EN:warn:up:Undefined param!
+RU:warn:up:Неизвестный параметр!
+
+EN:warn:nf:No such file!
+RU:warn:nf:Нет такого файла!
+
+EN:warn:id:Not a digits!
+RU:warn:id:Не является числом!
+
+EN:warn:idate:Incorrect date!
+RU:warn:idate:Неверная дата!
+
+EN:warn:nl:No lang set!
+RU:warn:nl:Язык не выбран!
+
+EN:warn:or:Line is out of range!
+RU:warn:or:Нет такой строки!
+

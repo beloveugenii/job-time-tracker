@@ -1,0 +1,498 @@
+#!/usr/bin/perl
+
+## LIBJTT
+
+use strict;
+use utf8;
+use open qw / :std :utf8 /;
+
+## FILE SECTION
+
+# This sub changes given param in '.config' file
+
+sub change_config {
+    my ( $config_file, $param, $value ) = @_;
+    my $new_config_file = $$config_file . '.new';
+
+    $param = "\U$param";
+    $$value = "\U$$value" if $param eq 'LANG';
+
+    open my $in, "<", $$config_file
+        or die "Can't open $$config_file for reading: $!\n";
+
+    open my $out, ">", $new_config_file
+        or die "Can't open $new_config_file to writing: $!\n";
+
+    while ( <$in> ) {
+        s/($param=).*/$1$$value/i;
+        print $out $_;
+    }
+
+    rename $new_config_file, $$config_file or die "Can't copy from backup file: $!";
+}
+
+# This sub changes user input into normal file name and check that it exists
+
+sub check_file {
+    my $file = shift;
+
+    $$file .= '.jtt' unless ( $$file =~ /\.jtt$/ );
+    $$file = File::Spec->catfile( 'data', $$file ) unless ( $$file =~ m%^.*data\/.+% );
+
+    ( -e $$file ) ? 1 : 0;
+}
+
+# This sub create the new *.jtt file with empty params
+
+sub create_new_file {
+    my $file_name = shift;
+
+    open my $fh, ">", $$file_name
+        or die "Can't open new file to write: $!";
+
+    print $fh "$_=\n" foreach ( qw / file_name salary bonus tax dprise first second relax period / );
+    $$file_name;
+}
+
+# Write changes in current *.jtt file
+
+sub write_to_file {
+
+    my ( $currentFile_ref, $user_data ) = @_;
+
+    open my $fh, '>', $$currentFile_ref
+        or die "Can't write to jtt file: $!\n";
+
+    foreach my $key ( sort keys %{$user_data->{params}} ) {
+        print $fh "$key=$user_data->{params}->{$key}\n";
+    }
+
+    print $fh "$_\n" foreach (
+            sort {
+            my ( $a_d, $a_m, $a_y ) = split /\./, $a;
+            my ( $b_d, $b_m, $b_y ) = split /\./, $b;
+
+# Edit string near for another sort order
+            $a_y <=> $b_y or
+            $a_m <=> $b_m or
+            $a_d <=> $b_d
+            } @{$user_data->{data}} );
+
+}
+
+# Changes personal params
+
+sub set_param {
+    my ( $param_hash_ref, $param_name, $lang ) = @_;
+
+    print "$lang->{params}->{$param_name}: ";
+    chomp ( my $param_value = <STDIN> );
+
+    if ($param_value =~ /^$/) {
+        return 0;
+    } elsif ( $param_value =~ /\d+\.?\d*/ ) {
+        $param_hash_ref->{$param_name} = $param_value;
+    } else {
+        &print_warn( \'ii', $lang );
+    }
+}
+
+# Read_config subroutine parses hidded .config file and return hashref with pairs param=value
+
+sub read_config {
+    my $config_file =
+        ( $_[0] =~ /^SCALAR/ ) ?
+        ${$_[0]} : $_[0];
+
+    my %parameters;
+
+    open my $fh, '<', $config_file
+        or die "Read_config die: $!\n";
+    while ( <$fh> ) {
+        chomp ;
+        next if ( /^#+/ or /^\s+$/i );
+        if ( /^(.+)\ ?=\ ?(.*)$/ ) {
+            $parameters{$1} = $2;
+            next;
+        }
+    }
+    \%parameters;
+}
+
+
+# This subroutine parses *.jtt file
+
+sub parse_file {
+    my $current_file_ref = shift;
+
+    my %user_data;
+
+    open my $fh, '<', ${$current_file_ref}
+    or die "Parse_file die: $!\n";
+
+    while ( <$fh> ) {
+        chomp;
+
+# add data in arrayref and params into hashref
+        push @{$user_data{data}}, $_ if ( /^\d.*$/ );
+        $user_data{params}->{$1} = $2 if ( /(.+)=(.*)/ );
+    }
+
+    \%user_data;
+}
+
+
+# This subroutine parses translation file and put it in hash
+sub set_lang {
+    my $lang = shift;
+    my %translation;
+
+    $$lang = "EN" unless $$lang;
+
+    open my $fh, "<", "translation" or die "Set_lang die: $!\n";
+
+    while ( <$fh> ) {
+        chomp;
+        next if ( /^#+/ or /^$/s or ! /^$$lang/ );
+
+        my ( $lc, $block, $name, $value ) = split /:/;
+        $translation{$block}->{$name} = $value;
+    }
+    \%translation;
+}
+
+# This sub create hashref with calclulated info. It is very hardcoded
+sub get_info {
+    my ( $ud, $current_file ) = @_;
+    my %info = (
+            salary => $$ud{params}{salary},
+            file_name => $$current_file,
+            j_days => &count_work_days( $$ud{params}{period}),
+            fact => int($$ud{params}{first} + $$ud{params}{second} + $$ud{params}{relax}),
+            );
+
+    $info{norm_h} = $info{j_days} * 8;
+    $info{per_h} = int($info{salary} / $info{norm_h});
+
+    $info{total_nh} = 0;
+
+    foreach ( @{$$ud{data}} ) {
+        $info{total_h} += ( split / / )[2];
+        $info{total_nh} += ( split / / )[3];
+        $info{num_of_lines}++;
+    }
+
+    $info{total_h} += $info{total_nh};
+
+    $info{dirty} =
+        int( ( ( $info{total_h} * $info{salary} ) / $info{norm_h} )
+        * ( 1 + $$ud{params}{dprise} + $$ud{params}{bonus} )
+        + ( 0.5 * $info{per_h} * $info{total_nh} ) );
+
+    $info{d_h} = $info{j_days} . "/" . $info{norm_h};
+    $info{tax_sum} = int($info{dirty} * $$ud{params}{tax});
+    $info{clear} = int($info{dirty} - $info{tax_sum});
+
+    \%info;
+}
+
+## OUTPUT SECTION
+
+sub get_longest {
+    my $list_ref = shift;
+    my $longest;
+    foreach ( @$list_ref ) {
+        $longest = length $_ if
+            length $_ > $longest;
+    }
+    $longest
+}
+
+sub get_screen {
+    my ( $screen_name, $user_data, $info, $translation ) = @_;
+    my @data = @{$user_data->{data}};
+    my @screen_menu;
+
+    foreach ( sort keys %{$translation->{$screen_name}} ) {
+        push @screen_menu, $_ unless $_ eq 'header'
+    }
+
+    my $length = (GetTerminalSize)[0];
+    my $line = '-' x $length;
+
+    my ( $num_f, $date_f, $wd_f, $dh_f, $nh_f ) = ( 2, 8, 3, 5, 5 );
+    my $lf = $length;
+    $lf -= $_ foreach ( $num_f, $date_f, $wd_f, $dh_f, $nh_f );
+    $lf = ' ' x ( $lf / 6 );
+
+    my $show_lines = sub {
+        for ( my $n = 0; $n <= $#data; $n++ ) {
+            my ( $date, $wd, $dh, $nh ) = split / /, $data[$n];
+            printf "%s%*s%s%*s%s%*s%s%*s%s%*s%s\n",
+                   $lf,
+                   $num_f, ( $n + 1 ),
+                   $lf,
+                   $date_f, $date,
+                   $lf,
+                   $wd_f, $translation->{wdays}{$wd},
+                   $lf,
+                   $dh_f, $dh,
+                   $lf,
+                   $nh_f,$nh,
+                   $lf;
+        }
+    };
+
+    my $header = sub {
+        my $header = ( $screen_name eq 'main_screen' ) ?
+            $translation->{$screen_name}{header} . ": ${$info}{file_name}" :
+            $translation->{$screen_name}{header};
+
+        my $hl = length $header;
+        $hl = ( $hl % 2 == 0 ) ? $hl :  $hl + 1;
+        my $hf = ' ' x ( ( $length - $hl) / 2 );
+
+        system 'clear';
+        print "$line\n";
+        printf "%s%*s%s\n",
+               $hf,
+               $hl, $header,
+               $hf;
+        print "$line\n";
+    };
+
+    my $menu = sub {
+        my @translated_menu;
+
+        push @translated_menu, $translation->{$screen_name}{$_} foreach ( @screen_menu );
+        push @translated_menu, ' ' unless ( @translated_menu % 2 == 0 );
+
+        my $longest = &get_longest( \@translated_menu );
+
+        my $mf = ' ' x ( ( $length - $longest * 2 ) / 4 );
+
+        print $line;
+        for ( my $k = 0; $k <= $#translated_menu; $k++ ) {
+            printf "%-s%-*s%-s%-*s%s\n",
+                   $mf,
+                   $longest, $translated_menu[$k++],
+                   $mf x 2,
+                   $longest, $translated_menu[$k],
+                   $mf ;
+        }
+        print "$line\n";
+    };
+
+    my $body = sub {
+        if ( $screen_name eq 'oaf_screen') {
+            my @files = glob ( File::Spec->catfile ( "data", "*.jtt" ) );
+            push @files, "" unless ( @files % 2 == 0 );
+            my $longest = &get_longest( \@files );
+
+            my $of = ' ' x ( ( $length - $longest * 2 ) / 4 );
+
+            for ( my $k = 0; $k <= $#files; $k++ ) {
+                printf "%-s%-*s%-s%-*s%s\n",
+                       $of,
+                       $longest, $files[$k++],
+                       $of x 2,
+                       $longest, $files[$k],
+                       $of
+            }
+        }
+        elsif ( $screen_name eq 'conf_screen' ) {
+            my @param_list = qw / salary bonus dprise tax first second relax period /;
+            my @translated_param_list;
+            push @translated_param_list, $$translation{params}->{$_} foreach ( @param_list );
+
+            my $longest = &get_longest( \@translated_param_list );
+            my $cf = ' ' x ( ( $length - $longest - 16 ) / 2 );
+
+            foreach ( @param_list ) {
+                printf "%s%-*s    =    %7s\n",
+                       $cf,
+                       $longest, $$translation{params}->{$_},
+                       $user_data->{params}{$_},
+                       $cf;
+            }
+        }
+        elsif ( $screen_name eq 'main_screen' ) {
+            my $f = ' ' x ( ( $length - 36 ) / 4 );
+            my $format =  "%s%-6s%6d%s%-6s%6s%s%-6s%3s%s\n";
+
+            my @lines = ( [$f, ], [$f, ], [$f, ], );
+
+            for ( my $n = 0; $n <= $#lines; $n++ ) {
+                my @params = ( $n == 0 ) ? qw / salary d_h per_h / :
+                    ( $n == 1 ) ? qw / tax_sum total_h total_nh / :
+                    ( $n == 2 ) ? qw / dirty clear fact / : qw / /;
+
+                foreach ( @params ) {
+                    push @{$lines[$n]}, $translation->{main}{$_};
+                    unless ( $_ eq 'clear' or $_ eq 'fact' ) {
+                        push @{$lines[$n]}, $info->{$_}
+                    }
+                    else {
+                        push @{$lines[$n]}, ( sprintf "%d", $info->{$_} )
+                    }
+                    push @{$lines[$n]}, $f
+                }
+            }
+
+            printf $format, @$_ foreach ( @lines );
+            print "$line\n";
+            &$show_lines;
+        }
+        else {
+            &$show_lines;
+        }
+    };
+
+    my $action = sub {
+        my ( $n, $num_line ) = @_;
+        my ( $date, $wd, $dh, $nh ) = split / /, $$num_line;
+
+        printf "%s%*s%s%*s%s%*s%s%*s%s%*s%s\n",
+               $lf,
+               $num_f, $$n,
+               $lf,
+               $date_f, $date,
+               $lf,
+               $wd_f, $translation->{wdays}{$wd},
+               $lf,
+               $dh_f, $dh,
+               $lf,
+               $nh_f,$nh,
+               $lf;
+
+        print "$line\n$translation->{another}{$screen_name}: "
+    };
+
+
+    unless ($screen_name eq 'rm_screen' or $screen_name eq 'el_screen') {
+        return ( $header, $body, $menu, )
+    }
+    else {
+        return ( $header, $body, $menu, $action, )
+    }
+}
+
+# This subroutine generating users warnings.
+sub print_warn {
+    my ( $message_ref, $lang_hash_ref ) = @_;
+    warn "$$lang_hash_ref{warn}->{$$message_ref}\n";
+    sleep 1
+}
+
+## DATE SECTION
+
+# This subroutine uses Calendar::Simple, counts the number of working days and returns it.
+# It gets the date from 'period' param from *.jtt file and return number of working days.
+sub count_work_days {
+    my $count;
+    my @month = Calendar::Simple::calendar( ( $_[0] =~ /(\d+)\.(\d+)/ ), 1 );
+
+    foreach my $week ( @month ) {
+        for ( my $n = 0; $n < $#{$week}; $n++ ) {
+            $count++ if ( ${$week}[$n] and $n < 5 );
+        }
+    }
+    $count
+}
+
+# This subroutines uses the Time::Local module to get the correct date when entering from the user.
+sub setDate {
+    my ( $date, $day_of_week, $lang_hash_ref ) = @_;
+    my ( $mday, $wday, $mon, $year );
+
+    while ( 1 ) {
+        $_ = Complete("$$lang_hash_ref{date}->{sd}: ", qw / now yesterday tomorrow / );
+
+        if ( /^(\d+)\.(\d+)\.(\d+)$/ ) {
+            ( $mday, $wday, $mon, $year ) = ( localtime( timelocal( 0, 0, 0, $1, $2 - 1, $3 ) ) )[3, 6, 4, 5];
+            last;
+        } elsif ( /^now*$/i ) {
+            ( $mday, $wday, $mon, $year ) = ( localtime )[3, 6, 4, 5];
+            last;
+        } elsif ( /^ye(?:sterday)*$/i ) {
+            ( $mday, $wday, $mon, $year ) = ( localtime( time - 24 * 60 * 60 )  )[3, 6, 4, 5];
+            last;
+        } elsif ( /^to(?:morrow)*$/i ) {
+            ( $mday, $wday, $mon, $year ) = ( localtime( time + 24 * 60 * 60 ) )[3, 6, 4, 5];
+            last;
+        } else {
+            &print_warn(\'idate', $lang_hash_ref );
+        }
+    }
+
+    $$date = sprintf "%02d.%02d.%02d", $mday, $mon+1, ( $year + 1900 ) % 100;
+    $$day_of_week = $wday
+}
+
+
+# This subroutine receives input from the user, checks that it is a number and sets a variable.
+sub setHours {
+    my ( $which, $hours_ref, $lang_hash_ref ) = @_;
+
+    while ( 1 ) {
+        print "$$lang_hash_ref{date}->{set} $which: ";
+        chomp ( $_ = <STDIN> );
+
+        if ( /^\d+(.\d)*$/ ) {
+            $$hours_ref = sprintf "%0.1f", $_ and last
+        } elsif ( /^$/s) {
+            $$hours_ref = sprintf "%0.1f", '0' and last
+        } else {
+            &print_warn( \'id', $lang_hash_ref )
+        }
+    }
+}
+
+# Check that array element is exist
+sub line_is_exist {
+    my ( $arr_ref, $line_num ) = @_;
+    ( $$line_num < 1 or $$line_num > $#$arr_ref + 1 ) ?
+        0 : 1
+}
+
+# This subroutine add new line at the end of users data array.
+# Additional subroutines are used to create a new line.
+sub addLine {
+    my ( $data_arr_ref, $lang_hash_ref ) = @_;
+    my ( $date, $wday, $dh, $nh );
+
+    &setDate( \$date, \$wday, $lang_hash_ref );
+    &setHours( 'DH', \$dh, $lang_hash_ref );
+    &setHours( 'NH', \$nh, $lang_hash_ref );
+
+    push @{$data_arr_ref}, ( join ' ', $date, $wday, $dh, $nh );
+}
+
+# This subroutine is intended for editing an existing line in users data array.
+# Additional subroutines are used to create a new line.
+sub edit_line {
+    my ( $line_ref, $lang_hash_ref ) = @_;
+    my ( $date, $wday, $dh, $nh );
+
+    &setDate( \$date, \$wday, $lang_hash_ref );
+    &setHours( 'DH', \$dh, $lang_hash_ref );
+    &setHours( 'NH', \$nh, $lang_hash_ref );
+
+    $$line_ref =  join ' ', $date, $wday, $dh, $nh;
+}
+
+# This subroutine is intended for remove existing line from users data array.
+# It create new array without selected line and re-write old array.
+sub remove_line {
+    my ( $data_arr_ref, $line_ref ) = @_;
+    my @new_data;
+
+    for ( my $n = 0; $n <= $#$data_arr_ref; $n++ ) {
+        push @new_data, $$data_arr_ref[$n] unless ( $n == $$line_ref - 1 );
+    }
+
+    @$data_arr_ref = @new_data;
+}
+
+1;
+
