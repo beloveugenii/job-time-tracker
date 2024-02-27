@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sqlite3, readline, signal, sys, re
+import sqlite3, sys
 from ui import *
 
 PROG_NAME = 'jtt-parser'
@@ -10,8 +10,9 @@ DB_NAME = sys.path[0] + '/data.db'
 con = sqlite3.connect(DB_NAME)
 cur = con.cursor()
 
-cur.execute('CREATE TABLE IF NOT EXISTS data (date TEXT, dh REAL, nh REAL)')
-cur.execute('CREATE TABLE IF NOT EXISTS config (period TEXT, salary REAL, first REAL, second REAL, relax REAL, bonus REAL, dprise REAL, tax REAL)')
+cur.execute('CREATE TABLE IF NOT EXISTS period_data (date TEXT, dh REAL, nh REAL)')
+cur.execute('CREATE TABLE IF NOT EXISTS period_params (period TEXT, salary REAL, first REAL, second REAL, relax REAL, bonus REAL, dprise REAL, tax REAL)')
+cur.execute('CREATE TABLE IF NOT EXISTS config (selected_period TEXT)')
 
 for file in sys.argv[1:]:
     if file.find('.jtt') == -1:
@@ -40,13 +41,14 @@ for file in sys.argv[1:]:
             date = '-'.join(['20' + d[2], d[1], d[0]])
             data_lines.append((date, match[2], match[3]))
 
-    cur.execute("INSERT INTO config VALUES (:period, :salary, :first, :second, :relax, :bonus, :dprise, :tax)", config) 
+    cur.execute("INSERT INTO period_params VALUES (:period, :salary, :first, :second, :relax, :bonus, :dprise, :tax)", config) 
     for line in data_lines:
-        cur.execute("INSERT INTO data VALUES (?, ?, ?)", line)
+        cur.execute("INSERT INTO period_data VALUES (?, ?, ?)", line)
 
     con.commit()
 
-    print(cur.execute("SELECT * from config").fetchall())
-    print(cur.execute('SELECT * FROM data').fetchall())
+print_as_table(cur.execute("SELECT * FROM period_params").fetchall(), ' ')
 
+print_as_table(cur.execute('SELECT * FROM period_data').fetchall(), ' ')
 
+con.close()

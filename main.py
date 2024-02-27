@@ -1,80 +1,64 @@
 #!/usr/bin/env python3
 
-import sqlite3, readline, signal, sys, re
+import sqlite3, readline, signal, sys, re, datetime
 from ui import *
+from libjtt import *
 
-PROG_NAME = 'jtt-parser'
+PROG_NAME = 'job-time-tracker'
 VERSION = '0.1.0'
 DB_NAME = sys.path[0] + '/data.db'
+
+(db_was_changed, period_was_changed) = (False, False)
 
 con = sqlite3.connect(DB_NAME)
 cur = con.cursor()
 
-cur.execute('CREATE TABLE IF NOT EXISTS data (date TEXT, dh REAL, nh REAL)')
-cur.execute('CREATE TABLE IF NOT EXISTS config (period TEXT, salary REAL, first REAL, second REAL, relax REAL, bonus REAL, dprise REAL, tax REAL)')
+create_tables(cur)
+#  con.commit()
+while True:
+    current_period = (cur.execute('SELECT selected_period FROM config').fetchone())
+    print(current_period)
+    #  exit(0)
 
-for file in sys.argv[1:]:
-    f = open(file, 'r')
-    config = dict.fromkeys(['period', 'selary','first', 'second', 'relax', 'bonus', 'dprise', 'tax'], None)
-    data_lines = list()
+    if current_period is None:
+        current_period = datetime.date.today().strftime("%Y-%m")
+        cur.execute('UPDATE config SET selected_period = ?', (current_period, ))
+        #  con.commit()
 
-    for line in f:
-        line=line[:-1]
+    
+    for l in cur.execute("SELECT * FROM period_data WHERE date LIKE ?", (current_period + '-%', )).fetchall():
+        print(l)
 
-        # ищем параметры конфигурации
-        sep = line.find('=')
-        if sep != -1:
-            (k, v) = (line[:sep], line[sep+1:])
-            config[k] = v
-        # остальные строки
-        else:
-            pass
+    action = input('>> ').lower().strip()
 
-    print(config)
-            
+    if action == 'q': break
+    elif action == 'a':
+        print('Пока необходимо вводить данные в формате ГГГГ-ММ-ДД Д.Ч Н.Ч')
+        line = input().split(' ')
+        cur.execute('insert into period_data values(?, ?, ?)', line)
+    elif action == 'p':
+        prev_period = datetime.date.fromisoformat(current_period + '-01') - datetime.timedelta(days=31)
+        #  current_period = prev_period.strftime("%Y-%m")
+        cur.execute('UPDATE config SET selected_period = ?', (prev_period.strftime("%Y-%m"), ))
 
-#  current_date = datetime.date.today().isoformat()
+        #  current_date_was_changed = True
+    #  elif action == 'n': 
+        #  current_date += datetime.timedelta(days = 31)
+        #  current_period = current_date.strftime("%Y-%m")
+        #  cur.execute('UPDATE config SET selected_period = ?', (current_period, ))
+        #  con.commit()
+    con.commit()
+con.close()
 
-#  def get_dates():
-    #  import datetime
-    #  current_date = datetime.date.today().isoformat()
-    #  date_tuple = current_date.split('-')
-    #  start_date = datetime.date.fromisoformat('-'.join(date_tuple[:2] + ['01']))
-    #  end_date = datetime.date.fromisoformat(date_tuple[0] + '-' + str(int(date_tuple[1]) + 1).zfill(2) + '-01')
-    #  return (current_date, start_date, end_date)
 
 
-#  (current_date, start_date, end_date) = get_dates()
-#  db_was_changed = False
-#  current_date_was_changed = True
-#  #  cur.execute('INSERT INTO data VALUES(?, ?, ?)', (date, match[2], match[3]))
-#  #  data_from_db = cur.execute('SELECT * FROM data where date >= date(?, \'start of month\')', (current_date.isoformat(),)).fetchall()
-#  #  con.commit()
 
 #  #  # Enable SIG handlers and configure readline
-#  #  signal.signal(signal.SIGINT, sigint_handler)
 #  #  readline.set_completer_delims('\n,')
-
-#  #  # Try to get id of current user
-#  #  user_id = get_user_id_from_db(cur)
-
-#  #  if user_id is None:
-    #  #  user_id = set_user(cur)
-    #  #  con.commit()
 
 #  #  # Get user data and diary from db
 #  #  user_data = get_user_data_by_id(cur, user_id)
 
-#  #  food_list = get_food_list(cur)
-
-#  #  while True:
-    #  #  screen_name = 'diary'
-    #  #  ui.clear()
-    #  #  if db_was_changed:
-        #  #  food_list = get_food_list(cur)
-        #  #  db_was_changed = False
-
-   
 
     #  #  diary = get_data_for_diary(cur, current_date.strftime('%Y-%m-%d'), user_id)
     #  #  kcal_norm = libsd.get_calories_norm(user_data)
@@ -100,88 +84,6 @@ for file in sys.argv[1:]:
     #  #  readline.parse_and_bind('tab: complete')
     #  #  readline.set_completer(c.Completer([food[0] for food in food_list]).complete)
 
-    #  action = input('>> ').lower().strip()
-    #  if action == 'q': break
-    #  elif action == 'p': 
-        #  current_date -= datetime.timedelta(days = 31)
-        #  current_date_was_changed = True
-    #  elif action == 'n': 
-        #  current_date += datetime.timedelta(days = 31)
-        #  current_date_was_changed = True
-    #  #  elif action == 's': os.system('python3 ' + SS_PATH + ' -i')
-    #  #  elif action == 'h': helps.help(screen_name)
-
-    #  #  elif action == 'u':
-        #  #  user_id = set_user(cur)
-        #  #  con.commit()
-        #  #  user_was_changed = True
-
-    #  #  elif action == 'l':
-        #  #  screen_name = 'food_db'
-        #  #  while True:
-            #  #  ui.clear()
-            #  #  res = get_food_data(cur)
-
-            #  #  # Disable tab-completion
-            #  #  readline.parse_and_bind('tab: \t')
-
-            #  #  ui.screen(
-                #  #  libsd.HEADERS[screen_name],
-                #  #  lambda: ui.print_as_table( [('title','kcal','p', 'f', 'c',)] + res,  ' ') if res else print(libsd.EMPTY_BODY[screen_name]),
-                #  #  libsd.MENUS_ENTRIES[screen_name], 2)
-
-            #  #  action = input('>> ').lower().strip()
-
-            #  #  if action == 'q': break
-            #  #  elif action == 'h': helps.help(screen_name)
-            #  #  elif action in 'ar': helps.help('not_impl', 1)
-
-            #  #  elif action not in 'arqh' and len(action) > 3:
-
-                #  #  new_food_params = {'kcal': 'калорийность', 'p': 'содержание белков',
-                   #  #  'f': 'содержание жиров','c': 'содержание углеводов'}
-                #  #  d = get_data(new_food_params, 1)
-                #  #  d['title'] = action
-                #  #  add_new_food(cur, d)
-                #  #  con.commit()
-                #  #  db_was_changed = True
-
-            #  #  elif action == 'a':
-                #  #  screen_name = 'analyzer'
-                #  #  while True:
-                    #  #  dishes_list = get_dishes_list(cur)
-                    #  #  # АНАЛИЗАТОР РЕЦЕПТА
-                    #  #  ui.screen(
-                        #  #  libsd.HEADERS[screen_name],
-                        #  #  lambda: print(*dishes_list) if dishes_list else print(libsd.EMPTY_BODY[screen_name]),
-                        #  #  libsd.MENUS_ENTRIES[screen_name], 3)
-
-                    #  #  action = input('>> ').lower().strip()
-
-                    #  #  if action == 'q': break
-                    #  #  elif action == 'c':
-        #  #  #  введите список продуктов с указанием количества, помогает табуляция
-        #  #  #  проверка, все ли продукты известны
-        #  #  #  подсчет данныэ
-        #  #  #  введите название блюда
-        #  #  #  сохранение в бд dishes
-                        #  #  print('Not implemented yet')
-                        #  #  sleep(1)
-    
-                    #  #  elif action == 'r':
-                        #  #  print('Not implemented yet')
-                        #  #  sleep(1)
-
-                    #  #  elif action == 'h':
-                        #  #  print(libsd.MENU_HELPS[screen_name])
-                        #  a = input()
-    
-                    #  else:
-                        #  print('Unsupported action')
-                        #  sleep(1)
-
-
-           
             #  else: helps.help('ua', 1)
 
     #  elif action not in 'lpnqht' and len(action) > 2:
