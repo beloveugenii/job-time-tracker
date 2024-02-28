@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import sqlite3, sys
-from ui import *
 
 PROG_NAME = 'jtt-parser'
 VERSION = '0.1.0'
@@ -16,7 +15,7 @@ cur.execute('CREATE TABLE IF NOT EXISTS config (selected_period TEXT)')
 
 for file in sys.argv[1:]:
     if file.find('.jtt') == -1:
-        print(f'"file" IS NOT A JTT FILE')
+        print(f'"{file}" IS NOT A JTT FILE')
         continue
     # открываем переданный файл
     f = open(file, 'r')
@@ -33,6 +32,9 @@ for file in sys.argv[1:]:
         sep = line.find('=')
         if sep != -1:
             (k, v) = (line[:sep], line[sep+1:])
+            if k == 'period':
+                parts = v.split('.')
+                v = '-'.join(parts[::-1])
             config[k] = v
         # остальные строки
         else:
@@ -44,11 +46,8 @@ for file in sys.argv[1:]:
     cur.execute("INSERT INTO period_params VALUES (:period, :salary, :first, :second, :relax, :bonus, :dprise, :tax)", config) 
     for line in data_lines:
         cur.execute("INSERT INTO period_data VALUES (?, ?, ?)", line)
-
+    else:
+        print(f'{file} was converted')
     con.commit()
-
-print_as_table(cur.execute("SELECT * FROM period_params").fetchall(), ' ')
-
-print_as_table(cur.execute('SELECT * FROM period_data').fetchall(), ' ')
 
 con.close()

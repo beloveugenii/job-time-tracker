@@ -23,7 +23,14 @@ If someone ever finds this program and uses it, bug reports can be sent to belov
 
 **Whats new**  
 
-**v.1.0.10**  
+**v1.5.0a**
+
+Новая версия переписана на Python и использует для хранения данных sqlite, а не отдельные файлы;
+Версия на Perl признана устаревшей и больше не поддерживается;
+Для миграции предложен простой парсер, который создает БД и переносит данные из файлов в нее;
+На данный момент версия на Python крайне сырая, но вносить данные уже можно;
+
+**v1.0.10**  
 The Calendar::Simple module is now located in the directory with the program, which eliminates the need to install it; 
 Widget creation script rewritten in Perl;  
 
@@ -35,7 +42,7 @@ New way in command line options handlers;
 
 **v1.0.8**  
 The data from .config file now availeble via $config hashref;  
-The data structure used in the program has been changed: now all data from the file \*.jtt is available via a hashref $user_data;  
+The data structure used in the program has been changed: now all data from the file \*.jtt is available via a hashref $user\_data;  
 All translations now placed in one file 'translation'. It parses for strings which available via hashref $translation;  
 The calculation of the information displayed is given in a separate function. It can be accessed via a hashref $info;  
 Many functions were divided into smaller;  

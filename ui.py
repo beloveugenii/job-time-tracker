@@ -1,11 +1,33 @@
-# libsui.py
+# CHANGELOG
+#  v0.0.1
+#  Первый выпуск Perl-библиотеки для построения простого пользовательского интерфейса
+	#  - библиотека оформлена в виде модуля
+	#  - добавлена POD-документация
+
+#  v0.0.1b
+#  Первый выпуск Python-библиотеки, ее функционал приближен к Perl версии
+
+#  v0.0.1c
+#  Из обеих библиотек удалены функции demo() и loop(), функция screen() больше не
+#  поддерживает автодополнение
+
+#  v0.0.2
+#  Остановка разработки Perl-версии
+#  Вся информация будет содержаться в файле с функциями
+
+#  v0.0.2.1
+#  Коментарии на русском
+#  line() теперь может принимать любой символ для печати 
 
 from os import get_terminal_size                       
 
 version = '0.0.2'
 
-def line():
-    print('-' * get_terminal_size()[0])
+def line(sep=None):
+    if sep is None:
+        sep = '-'
+    
+    print(sep * get_terminal_size()[0])
 
 def clear():
     # clears the screen
@@ -18,11 +40,14 @@ def promt(what):
     return input(what[0].upper() + what[1:] + ': ')
 
 def get_fields_len(array):
-    # takes a list of tuples
+    # В функцию передается массив, где каждый элемент - строка таблицы
     fields = []
 
-    # defines the number of rows and columns
+    # Количество строк - это длина массива (сверху вниз)
     rows = len(array)
+    
+    # Для каждой строки определяется количество элементов в ней
+    # Количество колонок таблицы - наибольшее количество элементов в какой-то строке
     try:
         cols =  max([len(col) for col in array])
     except ValueError:
@@ -31,7 +56,7 @@ def get_fields_len(array):
     # expands each row to the maximum number of columns
     for r in range(rows):
         while len(array[r]) < cols:
-                array[r] = array[r] + ('',)
+            array[r] = array[r] + ('',)
     
     # defines width of every columns
     for c in range(cols):
