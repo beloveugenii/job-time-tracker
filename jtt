@@ -63,6 +63,7 @@ while True:
         print('Пока необходимо вводить данные в формате ГГГГ-ММ-ДД Д.Ч Н.Ч')
         line = input().split(' ')
         cur.execute('insert into period_data values(?, ?, ?)', line)
+        con.commit()
     
 
     elif action in 'pn':
