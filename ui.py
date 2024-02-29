@@ -23,11 +23,9 @@ from os import get_terminal_size
 
 version = '0.0.2'
 
-def line(sep=None):
-    if sep is None:
-        sep = '-'
+def line():
     
-    print(sep * get_terminal_size()[0])
+    print('-' * get_terminal_size()[0])
 
 def clear():
     # clears the screen

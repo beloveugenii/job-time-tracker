@@ -44,7 +44,7 @@ while True:
     print_as_table(
             [[key for key in period_params.keys()]] + 
                 [[str(value) for value in period_params.values()]], ' ') if period_params else print('')
-    line()
+    #  line()
     
     print_as_table(period_data, ' ') if period_data else print('Нет данных за указанный период...')
 
