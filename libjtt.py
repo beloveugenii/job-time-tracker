@@ -1,3 +1,4 @@
+import datetime
 
 def create_tables(cur):
     tables_was_created = 0
@@ -33,20 +34,45 @@ def help(*args):
     else:
         empty_input = input()
 
-def convert_period_data(period_data):
-    total_dh = 0
-    total_nh = 0
-    total_h = 0
+def get_period_params(cur, current_period):
+    # Функция обращается к БД и извлекает строку с данными для расчета за указанный период
+    res = cur.execute('SELECT * FROM period_params WHERE period = ?', (current_period,)).fetchone()
 
-    for (my_date, dh, nh) in period_data:
-        total_dh += dh
-        total_nh += nh
-
-
-    total_h = total_dh + total_nh
+    if res is None:
+        return None
+    else:
+        # Возвращает словарь с параметрами
+        return dict(map(lambda *args: args, ('period', 'salary', 'first', 'second', 'relax', 'bonus', 'dprise', 'tax'), res) )
 
 
-    print(total_h, total_dh, total_nh)
+def get_period_data(cur, current_period):
+    period_data = list()
+    
+    # Функция обращается к БД и извлекает строки данных за указанный период
+    res = cur.execute("SELECT * FROM period_data WHERE date LIKE ?", (current_period + '-%', )).fetchall()
+
+    if res is None:
+        return None
+    else:
+        for line in res:
+            given_date = datetime.date.fromisoformat(line[0])
+            new_look = given_date.strftime('%d.%m.%y')
+            wday = weekdays_names[given_date.weekday()]
+
+            period_data.append((new_look, wday, line[1], line[2]))
+    
+    # функция возвращает список кортежей в дополненном и измененном виде
+        return period_data
+    
+
+
+
+def calculate(period_params, period_date):
+    total_work_days = 23
+    per_day = 0
+
+
+
 def isfloat(what):
     if what.startswith('-'):
         what = what[1:]

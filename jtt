@@ -30,19 +30,25 @@ while True:
 
 
     # Пытаемся получить строки данных за выбранный период времени
-    period_data = cur.execute("SELECT * FROM period_data WHERE date LIKE ?", (current_period + '-%', )).fetchall()
-    
-    # Пытаемся получить конфигурацию текущего выбранного периода времени
-    period_params = cur.execute('SELECT * FROM period_params WHERE period = ?', (current_period,)).fetchall()
+    period_data = get_period_data(cur, current_period)    
 
+
+    # Пытаемся получить конфигурацию текущего выбранного периода времени
+
+
+    period_params = get_period_params(cur, current_period)
     
-        
+    
     clear()
     header(' '.join((PROG_NAME, VERSION, ':', current_period)))
-    convert_period_data(period_data)
+    print_as_table(
+            [[key for key in period_params.keys()]] + 
+                [[str(value) for value in period_params.values()]], ' ') if period_params else print('')
+    line()
+    
+    print_as_table(period_data, ' ') if period_data else print('Нет данных за указанный период...')
 
-    print_as_table(period_params, ' ')
-    print_as_table(period_data, ' ')
+    menu(('add', 'quit', 'next month', 'previous month'), 2)
 
     
 
@@ -51,7 +57,8 @@ while True:
 
     action = input('>> ').lower().strip()
 
-    if action == 'q': break
+    if action not in 'pnqa': help('not_impl', 1)
+    elif action== 'q': break
     elif action == 'a':
         print('Пока необходимо вводить данные в формате ГГГГ-ММ-ДД Д.Ч Н.Ч')
         line = input().split(' ')
@@ -71,7 +78,6 @@ while True:
         con.commit()
 
 
-    else: help('not_impl', 1)
 
 con.close()
 
