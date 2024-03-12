@@ -49,7 +49,7 @@ def get_period_data(cur, current_period):
     period_data = list()
     
     # Функция обращается к БД и извлекает строки данных за указанный период
-    res = cur.execute("SELECT * FROM period_data WHERE date LIKE ?", (current_period + '-%', )).fetchall()
+    res = cur.execute("SELECT * FROM period_data WHERE date LIKE ? ORDER BY date", (current_period + '-%', )).fetchall()
 
     if res is None:
         return None
