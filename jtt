@@ -5,7 +5,7 @@ from ui import *
 from libjtt import *
 
 PROG_NAME = 'job-time-tracker'
-VERSION = '0.1.0'
+VERSION = '0.1.1'
 DB_NAME = sys.path[0] + '/data.db'
 
 con = sqlite3.connect(DB_NAME)
@@ -28,23 +28,17 @@ while True:
         # Если получилось получить значение из БД, приводим его к виду ГГГГ-ММ
         current_period = current_period[0]
 
-
     # Пытаемся получить строки данных за выбранный период времени
     period_data = get_period_data(cur, current_period)    
-
-
     # Пытаемся получить конфигурацию текущего выбранного периода времени
-
-
     period_params = get_period_params(cur, current_period)
-    
-    
+
+
     clear()
-    header(' '.join((PROG_NAME, VERSION, ':', current_period)))
-    print_as_table(
-            [[key for key in period_params.keys()]] + 
-                [[str(value) for value in period_params.values()]], ' ') if period_params else print('')
-    #  line()
+    header(' '.join((PROG_NAME, VERSION, ':', pretty_period(current_period))))
+    if period_params is not None:
+        print_as_table(calculate(period_params, period_data), ' ')
+        #  line()
     
     print_as_table(period_data, ' ') if period_data else print('Нет данных за указанный период...')
 
@@ -60,20 +54,23 @@ while True:
     if action not in 'pnqa': help('not_impl', 1)
     elif action== 'q': break
     elif action == 'a':
-        print('Пока необходимо вводить данные в формате ГГГГ-ММ-ДД Д.Ч Н.Ч')
+        print('Пока необходимо вводить данные в формате ГГГГ-ММ-ДД ДЧ НЧ')
         line = input().split(' ')
-        cur.execute('insert into period_data values(?, ?, ?)', line)
+
+        cur.execute('insert into period_data values(?, ?, ?)', (line[0], float(line[1]), float(line[2])))
         con.commit()
     
 
     elif action in 'pn':
         cp = datetime.date.fromisoformat(current_period + '-10')
-        td = datetime.timedelta(days=31)
 
         if action == 'p':
             td = datetime.timedelta(days=-31)
+            cp += td
+        elif action == 'n':
+            td = datetime.timedelta(days=31)
+            cp += td
 
-        cp += td
         cur.execute('UPDATE config SET selected_period = ?', (cp.strftime("%Y-%m"), ))
     
         con.commit()
@@ -81,6 +78,7 @@ while True:
 
 
 con.close()
+clear()
 
 
 

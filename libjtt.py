@@ -1,4 +1,5 @@
 import datetime
+from time import sleep
 
 def create_tables(cur):
     tables_was_created = 0
@@ -12,12 +13,16 @@ def create_tables(cur):
         cur.execute(stmt)
 
 
-weekdays_names = ('Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс')
+weekdays_names = ('пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс')
 
-from time import sleep
+months_names = ('январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь')
+
+def pretty_period(current_period):
+    d = current_period.split('-')
+    return f'{months_names[int(d[1]) - 1]} {d[0]}'
 
 messages = {
-    'not_impl': 'Not implemented yet',
+   'not_impl': 'Not implemented yet',
     'ua': 'Unsupported action',
     'small_str': 'Too small string',
     'need_number': 'A number is required',
@@ -64,13 +69,44 @@ def get_period_data(cur, current_period):
     # функция возвращает список кортежей в дополненном и измененном виде
         return period_data
     
+def str_to_float(str):
+    try:
+        str = float(str)
+    except:
+        str = 0.0
+
+    return str
 
 
+def calculate(period_params, period_data):
+    if period_params is None:
+        return None
 
-def calculate(period_params, period_date):
-    total_work_days = 23
-    per_day = 0
+    RD = dict()
 
+    RD['SALARY'] = period_params['salary']
+    RD['JDAYS'] = 21
+    
+    RD['NORM_H'] = RD['JDAYS'] * 8
+    
+    RD['FACT'] = int(str_to_float(period_params['first']) + str_to_float(period_params['second']) + str_to_float(period_params['relax']))
+
+    RD['PER_HOUR'] = int(RD['SALARY'] / RD['NORM_H'])
+    
+    RD['TH'] = int(sum([row[2] + row[3] for row in period_data]))
+    RD['NH'] = RD['TH'] - int(sum([row[2] for row in period_data]))
+
+    RD['DIRTY'] = int((RD['TH'] * RD['PER_HOUR']) * (1 + period_params['dprise'] + period_params['bonus']) + (0.5 * RD['PER_HOUR'] * RD['NH']))
+    
+    RD['TAX'] = int(RD['DIRTY'] * period_params['tax'])
+
+    RD['CLEAR'] = RD['DIRTY'] - RD['TAX']
+
+    return [
+            (f"Оклад {int(RD['SALARY'])}", f"Д/Ч {RD['JDAYS']}/{RD['NORM_H']}", f"заЧас {RD['PER_HOUR']}"), 
+            (f"Налог {RD['TAX']}", f"ВсегоЧ {RD['TH']}", f"Ночные {RD['NH']}"), 
+            (f"Грязн {RD['DIRTY']}", f"Чист {RD['CLEAR']}", f"Факт {RD['FACT']}")
+            ]
 
 
 def isfloat(what):
