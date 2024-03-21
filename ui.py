@@ -1,31 +1,21 @@
-# CHANGELOG
-#  v0.0.1
-#  Первый выпуск Perl-библиотеки для построения простого пользовательского интерфейса
-	#  - библиотека оформлена в виде модуля
-	#  - добавлена POD-документация
+# libsui.py
 
-#  v0.0.1b
-#  Первый выпуск Python-библиотеки, ее функционал приближен к Perl версии
+from os import get_terminal_size
+from time import sleep
 
-#  v0.0.1c
-#  Из обеих библиотек удалены функции demo() и loop(), функция screen() больше не
-#  поддерживает автодополнение
+version = '0.0.2.1'
 
-#  v0.0.2
-#  Остановка разработки Perl-версии
-#  Вся информация будет содержаться в файле с функциями
+def line(): print('-' * get_terminal_size()[0])
 
+def clear(): print('\033[H\033[2J', end='')
 
-from os import get_terminal_size                       
+def hide_cursor(): print("\033[?25l")
 
-version = '0.0.2'
+def restore_cursor(): print("\033[?25h")
 
-def line():
-    print('-' * get_terminal_size()[0])
+def save_cursor_pos(): print("\033[s")
 
-def clear():
-    # clears the screen
-    print('\033[H\033[2J', end='')
+def restore_cursor_pos(): print("\033[u")
 
 def promt(what):
     # takes a string
@@ -34,14 +24,11 @@ def promt(what):
     return input(what[0].upper() + what[1:] + ': ')
 
 def get_fields_len(array):
-    # В функцию передается массив, где каждый элемент - строка таблицы
+    # takes a list of tuples
     fields = []
 
-    # Количество строк - это длина массива (сверху вниз)
+    # defines the number of rows and columns
     rows = len(array)
-    
-    # Для каждой строки определяется количество элементов в ней
-    # Количество колонок таблицы - наибольшее количество элементов в какой-то строке
     try:
         cols =  max([len(col) for col in array])
     except ValueError:
@@ -50,7 +37,7 @@ def get_fields_len(array):
     # expands each row to the maximum number of columns
     for r in range(rows):
         while len(array[r]) < cols:
-            array[r] = array[r] + ('',)
+                array[r] = array[r] + ('',)
     
     # defines width of every columns
     for c in range(cols):
@@ -79,17 +66,7 @@ def print_as_table(items, sep):
         else:
             print('%s' % (sep * sep_len,))
 
-def hide_cursor():
-    print("\033[?25l")
 
-def restore_cursor():
-    print("\033[?25h")
-
-def save_cursor_pos():
-    print("\033[s")
-
-def restore_cursor_pos():
-    print("\033[u")
 
 def header(text):
     # takes a string and transform it to list of tuples with single element
@@ -128,5 +105,59 @@ def screen(header_title, func, menu_lst, menu_cols):
     header(header_title)
     func()
     menu(menu_lst, menu_cols)
+
+
+messages = {
+    'not_impl': 'Not implemented yet',
+    'ua': 'Unsupported action',
+    'small_str': 'Too small string',
+    'need_gender': 'A gender designation is required: [mM or fF]',
+    'need_number': 'A number is required',
+    'not_in_list': 'User with this number not in list',
+    'interactive':
+        "Enter the numbers of the required workout programs separated by spaces\n'c' for creating new training\n'r' to remove existed training\n'e' for editing the training\n'h' show this help\n'q' quit",
+    'users':
+        "Type user ID for choosing\n'n' create new user\n'dNUM' for removing user with id NUM\n'h' show this help\n'q' quit",
+    'diary':
+        "Enter the name of the food to be entered in the diary\n'n' go to the next day\n'p' go to the previous day\n'l' show food in database\n't' go to sport assistant\n'h' show this help\n'q' quit",
+    'food_db':
+        "Enter the name of the food to be entered in database\n'a' analyze the complex dish\n'r' remove from database\n'h' show this help\n'q' go back",
+    'analyzer':
+        "Enter the name of the food to be entered in the diary\n'c' create a new dish\n'r' remove an existing dish\n'h' show this help\n'q' quit",
+    'activity':
+        "1.2 – минимальная активность, сидячая работа, не требующая значительных физических нагрузок\n1.375 – слабый уровень активности: интенсивные упражнения не менее 20 минут один-три раза в неделю\n1.55 – умеренный уровень активности: интенсивная тренировка не менее 30-60 мин три-четыре раза в неделю\n1.7 – тяжелая или трудоемкая активность: интенсивные упражнения и занятия спортом 5-7 дней в неделю или трудоемкие занятия\n1.9 – экстремальный уровень: включает чрезвычайно активные и/или очень энергозатратные виды деятельности",
+}
+
+
+def show_help(*args):
+    print(messages[args[0]])
+    if len(args) > 1:
+        sleep(args[1])
+    else:
+        empty_input = input()
+
+class Completer():
+    def __init__(self, options):
+        self.options = sorted(options)
+        return
+
+    def complete(self, text, state):
+        response = None
+        if state == 0:
+            # Если какой-то текст передан в метод
+            if text:
+                # вернуть список слов из списка, которые начинаются на текст
+                self.matches = [s for s in self.options if s and s.startswith(text.lstrip())]
+            else:
+                # иначе вернуть весь список
+                self.matches = self.options[:]
+
+        # Вернуть элемент состояния из списка совпадений, если их много. 
+
+        try:
+            response = self.matches[state]
+        except IndexError:
+            response = None
+        return response
 
 

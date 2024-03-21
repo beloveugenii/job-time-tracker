@@ -133,3 +133,6 @@ def is_valid(value, type_str, char_list = None):
         #  type_str.startswith('len_g') and len(value) >
     )
 
+
+def command_parser(cl):
+    pass
