@@ -17,6 +17,10 @@ def save_cursor_pos(): print("\033[s")
 
 def restore_cursor_pos(): print("\033[u")
 
+def ex(ec):
+    clear()
+    exit(ec)
+
 def promt(what):
     # takes a string
     what = str(what)

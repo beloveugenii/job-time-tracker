@@ -15,7 +15,27 @@ def create_tables(cur):
 
 weekdays_names = ('пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс')
 
+dd = ['now', 'tomorrow', 'yesterday']
+
 months_names = ('январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь')
+
+def get_date(d):
+    # Передаем в функцию название и получаем дату
+    if d == 'now' or d == 'today' or d.startswith('no'):
+        return datetime.date.today()
+    elif d == 'yesterday' or d.startswith('ye'):
+        return datetime.date.today() - datetime.timedelta(1)
+    elif d == 'tomorrow' or d.startswith('to'):
+        return datetime.date.today() + datetime.timedelta(1)
+    
+    # Если передано не название, пытаемся разбить его по символу точки
+    td = d.split('.')
+    
+    # Если элементов больше 2, то возращаем дату 
+    if len(d) > 2:
+        return '-'.join(td[::-1])
+    else:
+        return None
 
 def pretty_period(current_period):
     d = current_period.split('-')
@@ -29,6 +49,22 @@ messages = {
     'diary':
         "Enter the name of the food to be entered in the diary\n'n' go to the next day\n'p' go to the previous day\n'l' show food in database\n't' go to sport assistant\n'h' show this help\n'q' quit",
 }
+
+def change_period(cur, current_period, direction):
+    cp = datetime.date.fromisoformat(current_period + '-10')
+
+    if direction == 'p':
+        td = datetime.timedelta(days=-31)
+        cp += td
+    elif direction == 'n':
+        td = datetime.timedelta(days=31)
+        cp += td 
+
+    rv = cur.execute('UPDATE config SET selected_period = ?', (cp.strftime("%Y-%m"), ))
+    if rv is None:
+        return False
+    else:
+        return True
 
 def help(*args):
 

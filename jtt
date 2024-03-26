@@ -4,11 +4,33 @@ import sqlite3, readline, sys, re, datetime
 from ui import *
 from libjtt import *
 
+menu_entries = ('add', 'configure', 'quit', 'next month', 'previous month')
+# НОВЫЕ ФУНКЦИИ
+
+
+#  actions = { #'a': lambda args:
+            #  'q': ex(0),
+            #  'p': change_period(cur, current_period, direction)
+            #  #  'p': lambda: print((datetime.date.today() - datetime.timedelta(31)).isoformat()),
+            #  #  'n': lambda: print((datetime.date.today() + datetime.timedelta(31)).isoformat()),
+            #  'default': lambda: print('Неизвестная команда'),
+           #  }
+
+
+
+
+
+
+
+
+
+
+
 PROG_NAME = 'job-time-tracker'
-VERSION = '0.1.1'
+VERSION = '0.1.1.1'
 DB_NAME = sys.path[0] + '/data.db'
 
-readline.set_completer_delims('\n,')
+#  readline.set_completer_delims('\n,')
 readline.parse_and_bind('tab: complete')
 
 con = sqlite3.connect(DB_NAME)
@@ -31,8 +53,10 @@ while True:
     else:
         # Если получилось получить значение из БД, приводим его к виду ГГГГ-ММ
         current_period = current_period[0]
-
-    # Пытаемся получить строки данных за выбранный период времени
+    
+    changed = False
+    
+# Пытаемся получить строки данных за выбранный период времени
     period_data = get_period_data(cur, current_period)    
     # И конфигурацию текущего выбранного периода времени
     period_params = get_period_params(cur, current_period)
@@ -48,41 +72,37 @@ while True:
 
     print_as_table(period_data, ' ') if period_data else print('Нет данных за указанный период...')
 
-    menu(('add', 'quit', 'next month', 'previous month'), 2)
+    menu(menu_entries, 2)
 
     
 
-    menu_entries = ('add', 'quit', 'next month', 'previous month')
 
-    readline.set_completer(Completer([item[0] for item in menu_entries]).complete)
+    readline.set_completer(Completer([item[0] for item in menu_entries] + dd).complete)
+
 
     action = input('>> ').lower().strip()
 
-    
+    if action in 'pn':
+        changed = change_period(cur, current_period, action)
 
-    if action not in 'pnqa': help('not_impl', 1)
-    elif action== 'q': break
+    elif action == 'q':
+        ex(0)
+
     elif action == 'a':
-        print('Пока необходимо вводить данные в формате ГГГГ-ММ-ДД ДЧ НЧ')
-        l = input().split(' ')
+        l = input().strip().split(' ')
+        cur.execute('insert into period_data values(?, ?, ?)', (get_date(l[0]), float(l[1]), float(l[2])))
+        changed = True
 
-        cur.execute('insert into period_data values(?, ?, ?)', (l[0], float(l[1]), float(l[2])))
+    else:
+        help('not_impl')
+
+    if changed:
         con.commit()
+        changed = False
+
+
+
     
-
-    elif action in 'pn':
-        cp = datetime.date.fromisoformat(current_period + '-10')
-
-        if action == 'p':
-            td = datetime.timedelta(days=-31)
-            cp += td
-        elif action == 'n':
-            td = datetime.timedelta(days=31)
-            cp += td
-
-        cur.execute('UPDATE config SET selected_period = ?', (cp.strftime("%Y-%m"), ))
-    
-        con.commit()
 
 
 
