@@ -4,7 +4,7 @@ import sqlite3, readline, sys, re, datetime
 from ui import *
 from libjtt import *
 
-menu_entries = ('add', 'configure', 'quit', 'next month', 'previous month')
+menu_entries = ('add', 'configure', 'help', 'next month', 'previous month', 'quit')
 # НОВЫЕ ФУНКЦИИ
 
 
@@ -27,7 +27,7 @@ menu_entries = ('add', 'configure', 'quit', 'next month', 'previous month')
 
 
 PROG_NAME = 'job-time-tracker'
-VERSION = '0.1.1.1'
+VERSION = '0.1.1.2'
 DB_NAME = sys.path[0] + '/data.db'
 
 #  readline.set_completer_delims('\n,')
@@ -72,7 +72,7 @@ while True:
 
     print_as_table(period_data, ' ') if period_data else print('Нет данных за указанный период...')
 
-    menu(menu_entries, 2)
+    menu(menu_entries, 3)
 
     
 
@@ -80,21 +80,25 @@ while True:
     readline.set_completer(Completer([item[0] for item in menu_entries] + dd).complete)
 
 
+   
     action = input('>> ').lower().strip()
+
+    # Вот теперь пора писать парсер комманды, он будет определять что введено и возвращать какое то значение, по которому будет вызываться соответствующая функция
 
     if action in 'pn':
         changed = change_period(cur, current_period, action)
 
-    elif action == 'q':
-        ex(0)
+    elif action == 'q': ex(0)
+
+    elif action == 'h': help('main_help')
 
     elif action == 'a':
+        print('Enter date, dh, nh')
         l = input().strip().split(' ')
-        cur.execute('insert into period_data values(?, ?, ?)', (get_date(l[0]), float(l[1]), float(l[2])))
-        changed = True
+        changed = add_data(cur, l)
 
-    else:
-        help('not_impl')
+
+    else: help('not_impl')
 
     if changed:
         con.commit()

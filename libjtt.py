@@ -19,6 +19,9 @@ dd = ['now', 'tomorrow', 'yesterday']
 
 months_names = ('январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь')
 
+
+
+
 def get_date(d):
     # Передаем в функцию название и получаем дату
     if d == 'now' or d == 'today' or d.startswith('no'):
@@ -27,12 +30,15 @@ def get_date(d):
         return datetime.date.today() - datetime.timedelta(1)
     elif d == 'tomorrow' or d.startswith('to'):
         return datetime.date.today() + datetime.timedelta(1)
+    elif d == '':
+        return None
     
     # Если передано не название, пытаемся разбить его по символу точки
     td = d.split('.')
-    
     # Если элементов больше 2, то возращаем дату 
     if len(d) > 2:
+        if len(td[2]) < 4:
+            td[2] = '20' + td[2]
         return '-'.join(td[::-1])
     else:
         return None
@@ -42,12 +48,12 @@ def pretty_period(current_period):
     return f'{months_names[int(d[1]) - 1]} {d[0]}'
 
 messages = {
-   'not_impl': 'Not implemented yet',
+    'not_impl': 'Not implemented yet',
     'ua': 'Unsupported action',
-    'small_str': 'Too small string',
     'need_number': 'A number is required',
-    'diary':
-        "Enter the name of the food to be entered in the diary\n'n' go to the next day\n'p' go to the previous day\n'l' show food in database\n't' go to sport assistant\n'h' show this help\n'q' quit",
+    'cc': "Can't convert date",
+    'main_help':
+        "'Date, day hours and night hours' you worked\n'c param value' to set or change period parameter to value\n'n' go to the next month\n'p' go to the previous month\n'h' show this help\n'q' quit",
 }
 
 def change_period(cur, current_period, direction):
@@ -104,8 +110,30 @@ def get_period_data(cur, current_period):
     
     # функция возвращает список кортежей в дополненном и измененном виде
         return period_data
-    
-def str_to_float(str):
+
+def add_data(cur, args):
+    rv = None
+    d, dh, nh = None, 0, 0
+        
+    if len(args) > 0:
+        d = get_date(args[0])
+        if d is None:
+            help('cc')
+            return False
+             
+    try: 
+        dh = str_to_float(args[1])
+        nh = str_to_float(args[2])
+    except: 
+        pass
+        
+    rv = cur.execute('insert into period_data values(?, ?, ?)', (d, dh, nh))
+       
+    return False if rv is None else True
+
+
+
+def str_to_float(str=0):
     try:
         str = float(str)
     except:
