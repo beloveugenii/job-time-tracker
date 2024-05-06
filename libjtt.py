@@ -1,34 +1,25 @@
 import datetime
 from time import sleep
 
-def create_tables(cur):
-    tables_was_created = 0
-    stmts = (
-        'CREATE TABLE IF NOT EXISTS period_data (date TEXT, dh REAL, nh REAL)', 
-        'CREATE TABLE IF NOT EXISTS period_params (period TEXT, salary REAL, first REAL, second REAL, relax REAL, bonus REAL, dprise REAL, tax REAL)',
-        'CREATE TABLE IF NOT EXISTS config (selected_period TEXT)',
-        )
-
-    for stmt in stmts:
-        cur.execute(stmt)
-
-
 weekdays_names = ('пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс')
 
 dd = ['now', 'tomorrow', 'yesterday']
 
 months_names = ('январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь')
 
+holydays = ('05-01', '01-01', '05-09', '03-08', '02-23')
+
+
 
 
 
 def get_date(d):
     # Передаем в функцию название и получаем дату
-    if d == 'now' or d == 'today' or d.startswith('no'):
+    if d == 'now' or d == 'today' or d.startswith('n'):
         return datetime.date.today()
-    elif d == 'yesterday' or d.startswith('ye'):
+    elif d == 'yesterday' or d.startswith('y'):
         return datetime.date.today() - datetime.timedelta(1)
-    elif d == 'tomorrow' or d.startswith('to'):
+    elif d == 'tomorrow' or d.startswith('t'):
         return datetime.date.today() + datetime.timedelta(1)
     elif d == '':
         return None
@@ -82,14 +73,20 @@ def help(*args):
         empty_input = input()
 
 def get_period_params(cur, current_period):
-    # Функция обращается к БД и извлекает строку с данными для расчета за указанный период
-    res = cur.execute('SELECT * FROM period_params WHERE period = ?', (current_period,)).fetchone()
+    # Функция обращается к БД для получения расчетных данных за период
+    # Возвращает словарь с данными
 
-    if res is None:
-        return None
-    else:
-        # Возвращает словарь с параметрами
-        return dict(map(lambda *args: args, ('period', 'salary', 'first', 'second', 'relax', 'bonus', 'dprise', 'tax'), res) )
+    res = None
+    while res is None:
+        res = cur.execute('SELECT * FROM period_params WHERE period = ?', (current_period,)).fetchone()
+
+        if res is None:
+        # Если res остается None, то данных нет -> необходимо внести их,
+        # Взяв за основу данные по-умолчанию
+            dp = cur.execute('SELECT * FROM default_params').fetchone()
+            cur.execute("INSERT INTO period_params ('period', 'salary', 'bonus', 'dprise', 'tax') VALUES (?, ?, ?, ?, ?)", (current_period, *dp))
+    
+    return dict(map(lambda *args: args, ('period', 'salary', 'first', 'second', 'relax', 'bonus', 'dprise', 'tax'), res) )
 
 
 def get_period_data(cur, current_period):
@@ -142,6 +139,24 @@ def str_to_float(str=0):
     return str
 
 
+def get_work_days(current_period):
+    # Получает текущий период и определяем количество рабочих дней в нем
+    # Учитываются праздничные дни, заданные в кортеже holydays
+    # Возвращает целое число
+    jdays = 0
+    
+    sd = datetime.datetime.strptime(current_period + '-01', '%Y-%m-%d')
+    
+    ed = (sd + datetime.timedelta(days=31)).replace(day=1) 
+
+    while sd < ed:
+        if sd.isoweekday() < 6 and not sd.strftime('%m-%d') in holydays: 
+            jdays += 1
+        sd += datetime.timedelta(days=1)
+
+    return jdays
+
+
 def calculate(period_params, period_data):
     if period_params is None:
         return None
@@ -149,7 +164,7 @@ def calculate(period_params, period_data):
     RD = dict()
 
     RD['SALARY'] = period_params['salary']
-    RD['JDAYS'] = 21
+    RD['JDAYS'] = get_work_days(period_params['period'])
     
     RD['NORM_H'] = RD['JDAYS'] * 8
     

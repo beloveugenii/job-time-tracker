@@ -3,6 +3,7 @@
 import sqlite3, readline, sys, re, datetime
 from ui import *
 from libjtt import *
+from init_db import *
 
 menu_entries = ('add', 'configure', 'help', 'next month', 'previous month', 'quit')
 # НОВЫЕ ФУНКЦИИ
@@ -27,7 +28,7 @@ menu_entries = ('add', 'configure', 'help', 'next month', 'previous month', 'qui
 
 
 PROG_NAME = 'job-time-tracker'
-VERSION = '0.1.1.2'
+VERSION = '0.1.1.3'
 DB_NAME = sys.path[0] + '/data.db'
 
 #  readline.set_completer_delims('\n,')
@@ -56,10 +57,14 @@ while True:
     
     changed = False
     
-# Пытаемся получить строки данных за выбранный период времени
+    # Пытаемся получить строки данных за выбранный период времени
     period_data = get_period_data(cur, current_period)    
     # И конфигурацию текущего выбранного периода времени
     period_params = get_period_params(cur, current_period)
+    
+
+    if period_params is None:
+        period_params = get_default_params(cur, current_period)
 
 
     # Вывод на экран
