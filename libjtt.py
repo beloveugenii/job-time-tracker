@@ -189,7 +189,7 @@ def remove_line(cur, period_data, *args):
 
     if num > 0 and num <= len(period_data):
        # Удаляем данные если есть подходящая строка
-       cur.execute('DELETE FROM period_data where rowid = ?', (period_data[num - 1][0],))
+       return cur.execute('DELETE FROM period_data where rowid = ?', (period_data[num - 1][0],))
     else:
         help('no_line')
         return False
