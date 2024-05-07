@@ -5,7 +5,7 @@ from ui import *
 from libjtt import *
 from init_db import *
 
-menu_entries = ('add', 'configure', 'help', 'next month', 'previous month', 'quit')
+menu_entries = ('add', 'remove', 'configure', 'help', 'next month', 'previous month', 'quit')
 # НОВЫЕ ФУНКЦИИ
 
 
@@ -28,7 +28,7 @@ menu_entries = ('add', 'configure', 'help', 'next month', 'previous month', 'qui
 
 
 PROG_NAME = 'job-time-tracker'
-VERSION = '0.1.1.3'
+VERSION = '0.1.1.4'
 DB_NAME = sys.path[0] + '/data.db'
 
 #  readline.set_completer_delims('\n,')
@@ -40,32 +40,18 @@ cur = con.cursor()
 create_tables(cur)
 con.commit()
 
+wc = False
+
 while True:
-    # Пытаемся получить значение выбранного периода времени из БД
-    current_period = (cur.execute('SELECT selected_period FROM config').fetchone())
-
-    if current_period is None:
-    # Если нет записанного значения - получаем текущий месяц в виде ГГГГ-ММ
-        current_period = (cur.execute("SELECT date()").fetchone())[0][:7]
-        # и записываем его в БД
-        cur.execute('INSERT INTO config VALUES(?)', (current_period, ))
+    current_period, wc = get_current_period(cur)
+    
+    period_params, wc = get_period_params(cur, current_period)
+    
+    if wc:
         con.commit()
+        wc = not wc
 
-    else:
-        # Если получилось получить значение из БД, приводим его к виду ГГГГ-ММ
-        current_period = current_period[0]
-    
-    changed = False
-    
-    # Пытаемся получить строки данных за выбранный период времени
     period_data = get_period_data(cur, current_period)    
-    # И конфигурацию текущего выбранного периода времени
-    period_params = get_period_params(cur, current_period)
-    
-
-    if period_params is None:
-        period_params = get_default_params(cur, current_period)
-
 
     # Вывод на экран
     clear()
@@ -75,39 +61,32 @@ while True:
         print_as_table(calculate(period_params, period_data), ' ')
         line() 
 
-    print_as_table(period_data, ' ') if period_data else print('Нет данных за указанный период...')
+    if period_data:
+        print_as_table(pretty_period_data(period_data), ' ')
+    else: 
+        print('Нет данных за указанный период...')
 
     menu(menu_entries, 3)
 
-    
-
-
     readline.set_completer(Completer([item[0] for item in menu_entries] + dd).complete)
 
+    action, args = command_parser(''.join([w[0] for w in menu_entries]))
 
-   
-    action = input('>> ').lower().strip()
+    if action in 'pn': wc = change_period(cur, current_period, action)
+    
+    elif action == 'h': help('main_help')
 
-    # Вот теперь пора писать парсер комманды, он будет определять что введено и возвращать какое то значение, по которому будет вызываться соответствующая функция
-
-    if action in 'pn':
-        changed = change_period(cur, current_period, action)
+    elif action == 'a': wc = add_line(cur, args)
 
     elif action == 'q': ex(0)
 
-    elif action == 'h': help('main_help')
+    elif action == 'r': wc = remove_line(cur, period_data, args)
+        
+    
 
-    elif action == 'a':
-        print('Enter date, dh, nh')
-        l = input().strip().split(' ')
-        changed = add_data(cur, l)
-
-
-    else: help('not_impl')
-
-    if changed:
+    if wc:
         con.commit()
-        changed = False
+        wc = not wc
 
 
 

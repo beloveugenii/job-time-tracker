@@ -9,8 +9,54 @@ months_names = ('январь', 'февраль', 'март', 'апрель', '�
 
 holydays = ('05-01', '01-01', '05-09', '03-08', '02-23')
 
+messages = {
+    'no_line': 'No line with entered number',
+    'not_impl': 'Not implemented yet',
+    'ua': 'Unsupported action',
+    'need_number': 'A number is required',
+    'cc': "Can't convert date",
+    'nea': 'Not enought arguments',
+    'main_help':
+        "'a date, day hours and night hours' you worked\n'c param value' to set or change period parameter to value\n'r' number of line to remove\n'n' go to the next month\n'p' go to the previous month\n'h' show this help\n'q' quit",
+}
 
+def get_current_period(cur):
+    # Функция получает объект-указатель на ДБ
+    # Функция возвращает кортеж из двух элементов (str, bool)
+    was_changed = False
+    current_period = (cur.execute('SELECT selected_period FROM config').fetchone())
 
+    if current_period is None:
+        # Получаем текущий период из БД и запоминаем его
+        current_period = (cur.execute("SELECT date()").fetchone())[0][:7]
+        cur.execute('INSERT INTO config VALUES(?)', (current_period, ))
+        was_changed = True
+    else:
+        # Если получилось получить значение из БД, приводим его к виду ГГГГ-ММ
+        current_period = current_period[0]
+
+    return current_period, was_changed
+
+def get_period_params(cur, current_period):
+    # Функция обращается к БД для получения расчетных данных за период
+    # Если нет данных за период - вставляет в БД значения по-умолчанию
+    # Возвращает кортеж из (словарь с данными, логическое значение)
+    res, was_changed = None, False
+    
+    while res is None:
+        res = cur.execute('SELECT * FROM period_params WHERE period = ?', (current_period,)).fetchone()
+
+        if res is None:
+            dp = cur.execute('SELECT * FROM default_params').fetchone()
+            cur.execute("INSERT INTO period_params ('period', 'salary', 'bonus', 'dprise', 'tax') VALUES (?, ?, ?, ?, ?)", (current_period, *dp))
+            was_changed = True
+    
+    return dict(map(lambda *args: args, ('period', 'salary', 'first', 'second', 'relax', 'bonus', 'dprise', 'tax'), res) ), was_changed
+
+def get_period_data(cur, current_period):
+    # Функция обращается к БД и извлекает строки данных за указанный период
+    # Возвращает список кортежей или None
+    return cur.execute("SELECT rowid,* FROM period_data WHERE date LIKE ? ORDER BY date", (current_period + '-%', )).fetchall()
 
 
 def get_date(d):
@@ -38,14 +84,20 @@ def pretty_period(current_period):
     d = current_period.split('-')
     return f'{months_names[int(d[1]) - 1]} {d[0]}'
 
-messages = {
-    'not_impl': 'Not implemented yet',
-    'ua': 'Unsupported action',
-    'need_number': 'A number is required',
-    'cc': "Can't convert date",
-    'main_help':
-        "'Date, day hours and night hours' you worked\n'c param value' to set or change period parameter to value\n'n' go to the next month\n'p' go to the previous month\n'h' show this help\n'q' quit",
-}
+def pretty_period_data(pd):
+    # Получает список кортежей
+    # Возвращает измененный список кортежей
+    ppd = list()
+    l = 0
+    while l != len(pd):
+        gd = datetime.date.fromisoformat(pd[l][1])
+        ppd.append(
+                (l + 1, gd.strftime('%d.%m.%y'), weekdays_names[gd.weekday()], pd[l][2], pd[l][3],pd[l][0])
+                )
+        l += 1
+
+    return ppd
+
 
 def change_period(cur, current_period, direction):
     cp = datetime.date.fromisoformat(current_period + '-10')
@@ -72,64 +124,82 @@ def help(*args):
     else:
         empty_input = input()
 
-def get_period_params(cur, current_period):
-    # Функция обращается к БД для получения расчетных данных за период
-    # Возвращает словарь с данными
-
-    res = None
-    while res is None:
-        res = cur.execute('SELECT * FROM period_params WHERE period = ?', (current_period,)).fetchone()
-
-        if res is None:
-        # Если res остается None, то данных нет -> необходимо внести их,
-        # Взяв за основу данные по-умолчанию
-            dp = cur.execute('SELECT * FROM default_params').fetchone()
-            cur.execute("INSERT INTO period_params ('period', 'salary', 'bonus', 'dprise', 'tax') VALUES (?, ?, ?, ?, ?)", (current_period, *dp))
-    
-    return dict(map(lambda *args: args, ('period', 'salary', 'first', 'second', 'relax', 'bonus', 'dprise', 'tax'), res) )
 
 
-def get_period_data(cur, current_period):
-    period_data = list()
-    
-    # Функция обращается к БД и извлекает строки данных за указанный период
-    res = cur.execute("SELECT * FROM period_data WHERE date LIKE ? ORDER BY date", (current_period + '-%', )).fetchall()
 
-    if res is None:
-        return None
-    else:
-        for line in res:
-            given_date = datetime.date.fromisoformat(line[0])
-            new_look = given_date.strftime('%d.%m.%y')
-            wday = weekdays_names[given_date.weekday()]
 
-            period_data.append((new_look, wday, line[1], line[2]))
-    
-    # функция возвращает список кортежей в дополненном и измененном виде
-        return period_data
-
-def add_data(cur, args):
-    rv = None
-    d, dh, nh = None, 0, 0
         
-    if len(args) > 0:
-        d = get_date(args[0])
-        if d is None:
-            help('cc')
-            return False
-             
+
+    
+
+
+def add_line(cur, *args):
+    # Получает указатель и произвольное количетво аргументов для добавления строки в БД
+    # Возвращает логическое значение успеха выполнения
+    args = args[0]
+    
+    # Если аргументов нет - запраишваем их
+    if len(args) == 0:
+        print('Enter date, dh, nh')
+        args = input().strip().split(' ')
+
+    # Если аргументов не хватате - сообщаем об этом и выходим
+    if len(args) < 2:
+        help('nea')
+        return False
+    # Значения по-умолчанию
+    d, dh, nh = None, 0, 0
+    
+    # Пытаемся получить из аргумента приемлемое значение
+    # Или, сообщив об ошибке, выходим
+    d = get_date(args[0])
+    if d is None:
+        help('cc')
+        return False
+    
+    # Пытаемя преобразовать аргументы в float         
     try: 
         dh = str_to_float(args[1])
         nh = str_to_float(args[2])
     except: 
         pass
         
-    rv = cur.execute('insert into period_data values(?, ?, ?)', (d, dh, nh))
-       
-    return False if rv is None else True
+    # Вносим данные
+    return cur.execute('INSERT INTO period_data VALUES(?, ?, ?)', (d, dh, nh))
+
+
+def remove_line(cur, period_data, *args):
+    # Получает указатель и необязательный аргумент для удаления из БД
+    # Возвращает логическое значение успеха выполнения
+    args = args[0]
+    
+    # Если аргументов нет - запраишваем их
+    if len(args) == 0:
+        print('Enter number of line to remove')
+        num = input().strip().split(' ')
+    else:
+        num = args[0]
+    
+    # Пытаемся преобразовать аргумент в int
+    try:
+        num = int(num[0])
+    except:
+        help('need_number')
+        return False
+
+    if num > 0 and num <= len(period_data):
+       # Удаляем данные если есть подходящая строка
+       cur.execute('DELETE FROM period_data where rowid = ?', (period_data[num - 1][0],))
+    else:
+        help('no_line')
+        return False
+        
 
 
 
+
+
+    
 def str_to_float(str=0):
     try:
         str = float(str)
@@ -213,5 +283,19 @@ def is_valid(value, type_str, char_list = None):
     )
 
 
-def command_parser(cl):
-    pass
+def command_parser(commands):
+    line = input('>> ').lower().strip().split(' ')
+
+    if len(line) == 0 or line[0] not in commands:
+            # если комманда не поддерживается
+        help('ua')
+        return '', ''
+    elif len(line) == 1 and line[0] in commands:
+            # если поддерживается, но нет аргументов
+        return line[0], ''
+    elif len(line) > 1:
+            # если поддерживается и есть аргументы
+        return line[0], line[1:]
+
+
+
