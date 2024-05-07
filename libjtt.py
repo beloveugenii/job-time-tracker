@@ -92,7 +92,7 @@ def pretty_period_data(pd):
     while l != len(pd):
         gd = datetime.date.fromisoformat(pd[l][1])
         ppd.append(
-                (l + 1, gd.strftime('%d.%m.%y'), weekdays_names[gd.weekday()], pd[l][2], pd[l][3],pd[l][0])
+                (l + 1, gd.strftime('%d.%m.%y'), weekdays_names[gd.weekday()], pd[l][2], pd[l][3])
                 )
         l += 1
 
