@@ -172,7 +172,7 @@ def remove_line(cur, period_data, *args):
     # Получает указатель и необязательный аргумент для удаления из БД
     # Возвращает логическое значение успеха выполнения
     args = args[0]
-    
+
     # Если аргументов нет - запраишваем их
     if len(args) == 0:
         print('Enter number of line to remove')
@@ -182,7 +182,7 @@ def remove_line(cur, period_data, *args):
     
     # Пытаемся преобразовать аргумент в int
     try:
-        num = int(num[0])
+        num = int(num)
     except:
         help('need_number')
         return False
