@@ -1,362 +1,73 @@
-#!/usr/bin/perl
-use strict;
-no warnings;
-use 5.32.1;
-
-use utf8;
-use open qw /:std :utf8/;
-
-use File::Basename qw / dirname /;
-use Getopt::Long qw / GetOptions /;
-use Time::Local qw / timelocal /;
-use Term::Completion qw / Complete /;
-use File::Spec;
-use Term::ReadKey qw / GetTerminalSize/;
-
-my $version = "1.0.10";
-
-chdir dirname $0;
-use lib dirname $0;
-require "libjtt";
-require "Simple.pm";
-
-# Set config file
-my $configFile = '.config';
-
-unless ( -e $configFile ) {
-    warn "No '.config' file yet. Creating...\n";
-    open my $fh, ">", $configFile or die "$!\n";
-    print $fh "$_=\n" foreach ( qw / FILE LANG / )
-}
-
-mkdir "./data" unless ( -e "./data" );
-
-# Get options form command-line and handle it
-GetOptions(
-        'file|f=s'  => sub { &change_config( \$configFile, 'file', \$_[1] ) },
-        'lang|l=s'  => sub { &change_config( \$configFile, 'lang', \$_[1] ) },
-        'help|h'    => sub { system "perldoc $0" and exit 0 },
-        'version|v' => sub { print "$version\n" and exit 0 },
-        'new|n'     => sub {
-        print "Enter new file name: ";
-        chomp ( my $new_file = <STDIN> );
-
-        if ( &check_file( \$new_file ) ) {
-        warn "File '$new_file' is alredy exist. Aborting.\n";
-        exit 1;
-        }
-        else {
-        &create_new_file ( \$new_file );
-        print "New file $new_file was created.\n";
-        exit 0;
-        }
-        },
-        'widget|w'  => sub {
-        ( exists $ENV{TERMUX_VERSION} ) ?
-        #system "sh widget/widget.sh" :
-        system "perl widget.pl" :
-            print "Abort creating termux-widget. You must use termux app.\n";
-        exit 0;
-        },
-        );
-
-
-# Start main block
-while ( 1 ) {
-
-# Parsing .config file: get FILE and LANG params
-    my $config = &read_config( \$configFile );
-    die "No file set\nUse -f option\n" unless $config->{FILE};
-
-# Parsing current *.jtt file: get params and data	
-    my $user_data = &parse_file( \$config->{FILE} );
-
-# Choose translation pack
-    my $translation = &set_lang( \$config->{LANG} );
-
-# Get output info from user_data hash
-    my $info = &get_info( $user_data, \$config->{FILE} );
-
-    my $screen_name = 'main_screen';
-    my $was_changed;
-
-    my ( $header, $body, $menu ) = &get_screen ( $screen_name, $user_data, $info, $translation );
-
-# Show main screen which shows all params and data
-    &$header;
-    &$body;
-    &$menu;
-
-# actions
-    my $action = Complete( '', sort qw / a e r c h q / ); 
-
-# ADD NEW
-    if ( $action =~ /^a$/i ) { 
-        &addLine( $user_data->{data}, $translation );
-        $was_changed = 1;
-    }
-
-# EDIT LINE
-    elsif ( $action =~ /^e$/i ) {
-        while ( 1 ) { 
-            $screen_name = 'el_screen';
-            ( $header, $body, $menu, $action ) = &get_screen ( $screen_name, $user_data, $info, $translation );
-
-            &$header;
-            &$body;
-            &$menu;
-
-            my $sub_action = Complete ( '', qw / q /);
-
-            if ( $sub_action =~ /^q$/i ) {
-                last;
-            } 
-            elsif ( $sub_action =~ /^-?\d+$/ ) { 
-                my $line_num_ref = \$sub_action; 
-
-                if ( &line_is_exist( $user_data->{data}, $line_num_ref ) ) {
-
-                    my $line_ref = \$user_data->{data}->[$$line_num_ref - 1];
-
-                    &$header;
-                    &$action($line_num_ref, $line_ref);
-
-                    chomp ( my $answ = <STDIN>);
-                    if ( $answ =~ /^q$/i ) { 
-                        1;
-                    }
-                    elsif ( $answ =~ /^$/ ) {
-                        &edit_line( $line_ref, $translation );
-                        $was_changed = 1;
-                    }
-                    else {
-                        &print_warn( \'ii', $translation );
-                    }
-                }
-                else {
-                    &print_warn( \'or', $translation );
-                }
-            }
-            else { 
-                &print_warn( \'ii', $translation ); 
-            }
-        }
-    }
-
-# REMOVE LINE
-    elsif ( $action =~ /^r$/i ) {
-        while ( 1 ) { 
-            $screen_name = 'rm_screen';
-            ( $header, $body, $menu, $action ) = &get_screen ( $screen_name, $user_data, $info, $translation );
-
-            &$header;
-            &$body;
-            &$menu;
-
-            my $sub_action = Complete ( '', sort qw / q /);
-
-            if ( $sub_action =~ /^q$/i ) {
-                last;
-            } 
-            elsif ( $sub_action =~ /^-?\d+$/ ) {
-                my $line_num_ref = \$sub_action; 
-
-                if ( &line_is_exist( $user_data->{data}, $line_num_ref ) ) {
-
-                    my $line_ref = \$user_data->{data}->[$$line_num_ref - 1];
-
-                    &$header;
-                    &$action($line_num_ref, $line_ref);   
-
-                    chomp ( my $answ = <STDIN>);
-
-                    if ( $answ =~ /^q$/i ) { 
-                        1;
-                    }
-                    elsif ( $answ =~ /^$/ ) {
-                        &remove_line( $user_data->{data}, $line_num_ref );
-                        $was_changed = 1;
-                    }
-                    else {
-                        &print_warn( \'ii', $translation );
-                    }
-                }
-                else {
-                    &print_warn( \'or', $translation );
-                }
-            }
-            else { 
-                &print_warn( \'ii', $translation ); 
-            }
-        }
-    }
-
-# CONFIGURE
-    elsif ( $action =~ /^c$/i ) { 
-
-        my @params = qw / salary bonus dprise tax first second relax period /;
-
-        while ( 1 ) {
-            $screen_name = 'conf_screen';
-            ( $header, $body, $menu ) = &get_screen ( $screen_name, $user_data, $info, $translation );
-
-            &$header;
-            &$body;
-            &$menu;
-
-            my $sub_action = Complete ( '', sort @params, qw / a q / );
-
-            if ( $sub_action =~ /^q$/i ) {
-                last;
-            }
-            elsif ( grep ( $sub_action eq $_, @params ) ) {  
-# SET SINGLE PARAM
-                &set_param( $user_data->{params}, $sub_action, $translation );
-                $was_changed = 1;
-            }
-            elsif ( $sub_action =~ /^a$/i ) {  
-# SET ALL PARAMS
-                foreach my $param ( @params ) {
-
-                    &$header;
-                    &$body;
-                    &$menu;
-                    &set_param( $user_data->{params}, $param, $translation ) ;
-                    $was_changed = 1;
-                }
-            } 
-            else { 
-                &print_warn( \'up', $translation ); 
-            }
-        }
-    }
-
-# OPEN ANOTHER FILE
-    elsif ( $action =~ /^o$/i ) {
-        while ( 1 ) {
-            $screen_name = 'oaf_screen';
-            ( $header, $body, $menu ) = &get_screen ( $screen_name, $user_data, $info, $translation );
-
-            &$header;
-            &$body;
-            &$menu;
-
-            my $sub_action = Complete( '', sort qw / n q /, glob "data/*.jtt" );
-
-            if ( $sub_action =~ /^q$/i ) {
-                last;
-            }       
-
-            elsif ( $sub_action =~ /^n$/i ) {   
-# CREATING NEW FILE
-                print "$translation->{another}{oaf_screen}: ";
-                chomp ( my $new_file = <STDIN> );
-
-                if ( &check_file( \$new_file ) ) {
-                    warn "File '$new_file' is alredy exist. Aborting.\n";
-                } 
-                else {
-                    &create_new_file ( \$new_file );
-                    print "New file $new_file was created.\n";
-                }
-
-                sleep 1;
-                next;
-            } 
-
-            elsif ( $sub_action =~ /[^n|q]/i ) {    
-# OPEN EXIST FILE
-                my $file_ref = \$sub_action;
-
-                if ( &check_file( $file_ref ) ) {
-                    &change_config( \$configFile, 'file', $file_ref ); 
-                    last; 
-                } 
-                else { 
-                    &print_warn( \'nf', $translation ); 
-                }   
-            } 
-            else {
-                &print_warn( \'ii', $translation );
-            }
-        }
-    } 
-
-# SHOW HELP
-    elsif ( $action =~ /^h$/i ) {
-        system 'clear';
-        system "perldoc $0";
-    }
-
-# EXIT
-    elsif ( $action =~ /^q$/i ) { 
-        system 'clear';
-        exit 0;
-    }
-
-    else {
-        &print_warn( \'uc', $translation );
-    }
-
-# Write changes in *.jtt file only if any data was changed or if new data was added
-    &write_to_file( \$config->{FILE}, $user_data ) if ( $was_changed );
-
-}	
-
-# POD
-=head1 NAME
-Job Time Tracker
-It's a simple program that allows you to keep track of the time worked and the salary received for it.
-
-Z<>
-
-=head1 SYNOPSIS
-At first make 'jtt' file executable using 'chmod +x jtt' in programs root dir.
-Run ./jtt with -n/--new option to create first *.jtt file.
-Run ./jtt with -f/--file option and specify *.jtt file. Add -l/--lang LANG to specify lang. Uses EN by default.
-Run ./jtt -w/--widget to create Termux widget if you need. 
-After that, you should use the 'configure' to set personal data.
-And finally, you need to add information about worked shifts.
-
-Z<>
-
-=head1 OPTIONS
-
-=over
-
-=item -f/--file [*.jtt_file] writes the specified file to the '.config' file
-
-=item -n/--new creates new *.jtt file
-
-=item -l/--lang LANG change language. At this moment you can use EN or RU
-
-=item -w/--widget create termux-widget by widget.sh
-
-
-=back
-
-Z<>
-
-=head1 DESCRIPTION
-The job time tracker is a simple program that allows you to keep track of the time worked and the salary received for it.
-First of all, it is worth saying that this program was planned as a mobile application launched through [Termux]( https://github.com/termux ). In addition, for ease of use, you can use [Termux-widget](https://github.com/termux/termux-widget).
-With Jtt provides the simple script *widget.sh* that will create a widget and prepare the runtime environment.
-The program calculates the norm of hours per month, depending on the number of working days. At the same time, holidays are not taken into account.
-When filling in the table, data is used: the date, the number of hours worked in the day shift and the number of hours worked in the night shift. Based on the completed hours and additional data, the amount of the expected salary is calculated.
-
-Z<>
-
-=head1 AUTHOR
-Eugeniy Belov, <beloveugenii@gmail.com> 
-
-Z<>
-
-=head1 COPYRIGHT AND LICENSE
-Copyright 2022 by Eugeniy Belov.
-This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.
-
-Z<>
-
-
-=cut
+#!/usr/bin/env python3
+
+import sqlite3, readline, sys, re, datetime
+from ui import *
+from libjtt import *
+from init_db import *
+
+PROG_NAME = 'job-time-tracker'
+VERSION = '0.1.1.5'
+DB_NAME = sys.path[0] + '/data.db'
+
+#  readline.set_completer_delims('\n,')
+readline.parse_and_bind('tab: complete')
+
+con = sqlite3.connect(DB_NAME)
+cur = con.cursor()
+
+create_tables(cur)
+con.commit()
+
+wc = False
+
+while True:
+    current_period, wc = get_current_period(cur)
+    
+    period_params, wc = get_period_params(cur, current_period)
+    
+    if wc:
+        con.commit()
+        wc = not wc
+
+    period_data = get_period_data(cur, current_period)    
+
+    # Вывод на экран
+    clear()
+    header(' '.join((PROG_NAME, VERSION, ':', pretty_period(current_period))))
+    
+    if period_params is not None:
+        print_as_table(calculate(period_params, period_data), ' ')
+        line() 
+
+    if period_data:
+        print_as_table(pretty_period_data(period_data), ' ')
+    else: 
+        print('Нет данных за указанный период...')
+
+    menu(menu_entries, 3)
+
+    readline.set_completer(Completer([item[0] for item in menu_entries] + dd).complete)
+
+    action, args = command_parser(''.join([w[0] for w in menu_entries]))
+
+    if action in 'pn': wc = change_period(cur, current_period, action)
+    
+    elif action == 'h': help('main_help')
+
+    elif action == 'a': wc = add_line(cur, args)
+
+    elif action == 'q': exit(0)
+
+    elif action == 'r': wc = remove_line(cur, period_data, args)
+        
+    if wc:
+        con.commit()
+        wc = not wc
+
+con.close()
+clear()
+
+
+
+
 
