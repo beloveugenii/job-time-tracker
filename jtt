@@ -5,30 +5,8 @@ from ui import *
 from libjtt import *
 from init_db import *
 
-menu_entries = ('add', 'remove', 'configure', 'help', 'next month', 'previous month', 'quit')
-# НОВЫЕ ФУНКЦИИ
-
-
-#  actions = { #'a': lambda args:
-            #  'q': ex(0),
-            #  'p': change_period(cur, current_period, direction)
-            #  #  'p': lambda: print((datetime.date.today() - datetime.timedelta(31)).isoformat()),
-            #  #  'n': lambda: print((datetime.date.today() + datetime.timedelta(31)).isoformat()),
-            #  'default': lambda: print('Неизвестная команда'),
-           #  }
-
-
-
-
-
-
-
-
-
-
-
 PROG_NAME = 'job-time-tracker'
-VERSION = '0.1.1.4'
+VERSION = '0.1.1.5'
 DB_NAME = sys.path[0] + '/data.db'
 
 #  readline.set_completer_delims('\n,')
@@ -78,21 +56,13 @@ while True:
 
     elif action == 'a': wc = add_line(cur, args)
 
-    elif action == 'q': ex(0)
+    elif action == 'q': exit(0)
 
     elif action == 'r': wc = remove_line(cur, period_data, args)
         
-    
-
     if wc:
         con.commit()
         wc = not wc
-
-
-
-    
-
-
 
 con.close()
 clear()

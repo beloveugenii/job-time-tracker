@@ -1,6 +1,11 @@
 import datetime
 from time import sleep
 
+
+# КОНСТАНТЫ
+
+menu_entries = ('add', 'remove', 'configure', 'help', 'next month', 'previous month', 'quit')
+
 weekdays_names = ('пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс')
 
 dd = ['now', 'tomorrow', 'yesterday']
@@ -19,6 +24,9 @@ messages = {
     'main_help':
         "'a date, day hours and night hours' you worked\n'c param value' to set or change period parameter to value\n'r' number of line to remove\n'n' go to the next month\n'p' go to the previous month\n'h' show this help\n'q' quit",
 }
+
+
+# ФУНКЦИИ ПОЛУЧЕНИЯ ДАННЫХ ИЗ БД
 
 def get_current_period(cur):
     # Функция получает объект-указатель на ДБ
@@ -58,7 +66,6 @@ def get_period_data(cur, current_period):
     # Возвращает список кортежей или None
     return cur.execute("SELECT rowid,* FROM period_data WHERE date LIKE ? ORDER BY date", (current_period + '-%', )).fetchall()
 
-
 def get_date(d):
     # Передаем в функцию название и получаем дату
     if d == 'now' or d == 'today' or d.startswith('n'):
@@ -80,24 +87,8 @@ def get_date(d):
     else:
         return None
 
-def pretty_period(current_period):
-    d = current_period.split('-')
-    return f'{months_names[int(d[1]) - 1]} {d[0]}'
 
-def pretty_period_data(pd):
-    # Получает список кортежей
-    # Возвращает измененный список кортежей
-    ppd = list()
-    l = 0
-    while l != len(pd):
-        gd = datetime.date.fromisoformat(pd[l][1])
-        ppd.append(
-                (l + 1, gd.strftime('%d.%m.%y'), weekdays_names[gd.weekday()], pd[l][2], pd[l][3])
-                )
-        l += 1
-
-    return ppd
-
+# ФУНКЦИИ - ДЕЙСТВИЯ
 
 def change_period(cur, current_period, direction):
     cp = datetime.date.fromisoformat(current_period + '-10')
@@ -124,14 +115,21 @@ def help(*args):
     else:
         empty_input = input()
 
+def command_parser(commands):
+    # Запрашивает ввод комманды в виде 'команда' 'аругменты'
+    line = input('>> ').lower().strip().split(' ')
 
-
-
-
-        
-
-    
-
+    # Нет ввода или комманда не поддерживается
+    if line[0] not in commands or line[0] == '':
+        #  help('ua')
+        return None, None
+    elif line[0] in commands:
+        # Ввод только комманды, без аргументов
+        if len(line) == 1:
+            return line[0], None
+        # Ввод подходящей команды с аргментами
+        else:
+            return line[0], line[1:]
 
 def add_line(cur, *args):
     # Получает указатель и произвольное количетво аргументов для добавления строки в БД
@@ -139,7 +137,7 @@ def add_line(cur, *args):
     args = args[0]
     
     # Если аргументов нет - запраишваем их
-    if len(args) == 0:
+    if args is None:
         print('Enter date, dh, nh')
         args = input().strip().split(' ')
 
@@ -167,19 +165,18 @@ def add_line(cur, *args):
     # Вносим данные
     return cur.execute('INSERT INTO period_data VALUES(?, ?, ?)', (d, dh, nh))
 
-
 def remove_line(cur, period_data, *args):
     # Получает указатель и необязательный аргумент для удаления из БД
     # Возвращает логическое значение успеха выполнения
     args = args[0]
 
     # Если аргументов нет - запраишваем их
-    if len(args) == 0:
+    if args is None:
         print('Enter number of line to remove')
-        num = input().strip().split(' ')
+        num = input().strip()
     else:
         num = args[0]
-    
+
     # Пытаемся преобразовать аргумент в int
     try:
         num = int(num)
@@ -193,21 +190,27 @@ def remove_line(cur, period_data, *args):
     else:
         help('no_line')
         return False
-        
+     
 
+# ФУНКЦИИ ВЫЧИСЛЕНИЙ И ВЫВОДЫ
 
+def pretty_period(current_period):
+    d = current_period.split('-')
+    return f'{months_names[int(d[1]) - 1]} {d[0]}'
 
+def pretty_period_data(pd):
+    # Получает список кортежей
+    # Возвращает измененный список кортежей
+    ppd = list()
+    l = 0
+    while l != len(pd):
+        gd = datetime.date.fromisoformat(pd[l][1])
+        ppd.append(
+                (l + 1, gd.strftime('%d.%m.%y'), weekdays_names[gd.weekday()], pd[l][2], pd[l][3])
+                )
+        l += 1
 
-
-    
-def str_to_float(str=0):
-    try:
-        str = float(str)
-    except:
-        str = 0.0
-
-    return str
-
+    return ppd
 
 def get_work_days(current_period):
     # Получает текущий период и определяем количество рабочих дней в нем
@@ -225,7 +228,6 @@ def get_work_days(current_period):
         sd += datetime.timedelta(days=1)
 
     return jdays
-
 
 def calculate(period_params, period_data):
     if period_params is None:
@@ -258,7 +260,21 @@ def calculate(period_params, period_data):
             ]
 
 
+# ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+
+def str_to_float(str=0):
+# Пробуем преобразовать переданную строку в число с точкой
+# Возращает его или 0.0
+    try:
+        str = float(str)
+    except:
+        str = 0.0
+
+    return str
+
 def isfloat(what):
+# Проверяет, что переданное число является числом с точкой
+# Возвращает логическое значение
     if what.startswith('-'):
         what = what[1:]
     parts = what.split('.')
@@ -283,19 +299,6 @@ def is_valid(value, type_str, char_list = None):
     )
 
 
-def command_parser(commands):
-    line = input('>> ').lower().strip().split(' ')
-
-    if len(line) == 0 or line[0] not in commands:
-            # если комманда не поддерживается
-        help('ua')
-        return '', ''
-    elif len(line) == 1 and line[0] in commands:
-            # если поддерживается, но нет аргументов
-        return line[0], ''
-    elif len(line) > 1:
-            # если поддерживается и есть аргументы
-        return line[0], line[1:]
 
 
 

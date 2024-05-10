@@ -17,6 +17,6 @@ def create_tables(cur):
 
     rv = cur.execute('SELECT * FROM default_params').fetchone()
     if rv is None:
-        cur.execute('INSERT INTO default_params VALUES(49505, 0.15, 0.04, 0.13)')
+        cur.execute('INSERT INTO default_params VALUES(49504, 0.15, 0.04, 0.13)')
 
 
