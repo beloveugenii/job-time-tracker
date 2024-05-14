@@ -1,18 +1,13 @@
 import datetime
-from time import sleep
+from common import *
+from ui import helps, get_const
+from init_db import *
 
-
-# КОНСТАНТЫ
-
-menu_entries = ('add', 'remove', 'configure', 'help', 'next month', 'previous month', 'quit')
-
-weekdays_names = ('пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс')
-
-dd = ['now', 'tomorrow', 'yesterday']
-
-months_names = ('январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь')
-
-holydays = ('05-01', '01-01', '05-09', '03-08', '02-23')
+weekdays_names = get_const('strings.json', 'weekdays_names')
+months_names = get_const('strings.json', 'months_names')
+menu_entries = get_const('strings.json', 'menu_entries')
+dd = [i for i in get_const('strings.json', 'days')]
+holydays = get_const('strings.json', 'holydays')
 
 messages = {
     'no_line': 'No line with entered number',
@@ -21,6 +16,7 @@ messages = {
     'need_number': 'A number is required',
     'cc': "Can't convert date",
     'nea': 'Not enought arguments',
+    'ndip': 'Нет данных за указанный период...',
     'main_help':
         "'a date, day hours and night hours' you worked\n'c param value' to set or change period parameter to value\n'r' number of line to remove\n'n' go to the next month\n'p' go to the previous month\n'h' show this help\n'q' quit",
 }
@@ -32,7 +28,7 @@ def get_current_period(cur):
     # Функция получает объект-указатель на ДБ
     # Функция возвращает кортеж из двух элементов (str, bool)
     was_changed = False
-    current_period = (cur.execute('SELECT selected_period FROM config').fetchone())
+    current_period = check_data_in_table(cur, 'config')
 
     if current_period is None:
         # Получаем текущий период из БД и запоминаем его
@@ -55,7 +51,7 @@ def get_period_params(cur, current_period):
         res = cur.execute('SELECT * FROM period_params WHERE period = ?', (current_period,)).fetchone()
 
         if res is None:
-            dp = cur.execute('SELECT * FROM default_params').fetchone()
+            dp = check_data_in_table(cur, 'default_params')
             cur.execute("INSERT INTO period_params ('period', 'salary', 'bonus', 'dprise', 'tax') VALUES (?, ?, ?, ?, ?)", (current_period, *dp))
             was_changed = True
     
@@ -64,7 +60,7 @@ def get_period_params(cur, current_period):
 def get_period_data(cur, current_period):
     # Функция обращается к БД и извлекает строки данных за указанный период
     # Возвращает список кортежей или None
-    return cur.execute("SELECT rowid,* FROM period_data WHERE date LIKE ? ORDER BY date", (current_period + '-%', )).fetchall()
+    return cur.execute("SELECT rowid, * FROM period_data WHERE date LIKE ? ORDER BY date", (current_period + '-%', )).fetchall()
 
 def get_date(d):
     # Передаем в функцию название и получаем дату
@@ -90,6 +86,22 @@ def get_date(d):
 
 # ФУНКЦИИ - ДЕЙСТВИЯ
 
+def command_parser(commands):
+    # Запрашивает ввод комманды в виде 'команда' 'аругменты'
+    line = input('>> ').lower().strip().split(' ')
+
+    # Нет ввода или комманда не поддерживается
+    if line[0] not in commands or line[0] == '':
+        return None, None
+    elif line[0] in commands:
+        # Ввод только комманды, без аргументов
+        if len(line) == 1:
+            return line[0], None
+        # Ввод подходящей команды с аргментами
+        else:
+            return line[0], line[1:]
+
+
 def change_period(cur, current_period, direction):
     cp = datetime.date.fromisoformat(current_period + '-10')
 
@@ -106,31 +118,6 @@ def change_period(cur, current_period, direction):
     else:
         return True
 
-def help(*args):
-
-    print(messages[args[0]])
-
-    if len(args) > 1:
-        sleep(args[1])
-    else:
-        empty_input = input()
-
-def command_parser(commands):
-    # Запрашивает ввод комманды в виде 'команда' 'аругменты'
-    line = input('>> ').lower().strip().split(' ')
-
-    # Нет ввода или комманда не поддерживается
-    if line[0] not in commands or line[0] == '':
-        #  help('ua')
-        return None, None
-    elif line[0] in commands:
-        # Ввод только комманды, без аргументов
-        if len(line) == 1:
-            return line[0], None
-        # Ввод подходящей команды с аргментами
-        else:
-            return line[0], line[1:]
-
 def add_line(cur, *args):
     # Получает указатель и произвольное количетво аргументов для добавления строки в БД
     # Возвращает логическое значение успеха выполнения
@@ -143,7 +130,7 @@ def add_line(cur, *args):
 
     # Если аргументов не хватате - сообщаем об этом и выходим
     if len(args) < 2:
-        help('nea')
+        helps(messages['nea'])
         return False
     # Значения по-умолчанию
     d, dh, nh = None, 0, 0
@@ -152,7 +139,7 @@ def add_line(cur, *args):
     # Или, сообщив об ошибке, выходим
     d = get_date(args[0])
     if d is None:
-        help('cc')
+        helps(messages['cc'])
         return False
     
     # Пытаемя преобразовать аргументы в float         
@@ -181,14 +168,14 @@ def remove_line(cur, period_data, *args):
     try:
         num = int(num)
     except:
-        help('need_number')
+        helps(messages['need_number'])
         return False
 
     if num > 0 and num <= len(period_data):
        # Удаляем данные если есть подходящая строка
        return cur.execute('DELETE FROM period_data where rowid = ?', (period_data[num - 1][0],))
     else:
-        help('no_line')
+        helps(messages['no_line'])
         return False
      
 
@@ -258,47 +245,4 @@ def calculate(period_params, period_data):
             (f"Налог {RD['TAX']}", f"ВсегоЧ {RD['TH']}", f"Ночные {RD['NH']}"), 
             (f"Грязн {RD['DIRTY']}", f"Чист {RD['CLEAR']}", f"Факт {RD['FACT']}")
             ]
-
-
-# ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-
-def str_to_float(str=0):
-# Пробуем преобразовать переданную строку в число с точкой
-# Возращает его или 0.0
-    try:
-        str = float(str)
-    except:
-        str = 0.0
-
-    return str
-
-def isfloat(what):
-# Проверяет, что переданное число является числом с точкой
-# Возвращает логическое значение
-    if what.startswith('-'):
-        what = what[1:]
-    parts = what.split('.')
-    return len(parts) == 2 and parts[0].isnumeric() and parts[1].isnumeric()
-
-def is_valid(value, type_str, char_list = None):
-
-    v_types = ( 'is_number', 'is_num', 'is_float', 'is_fl',
-        'is_negative', 'is_neg', 'in_lst', 'in_ls', 'len_g', )
-
-    if type_str not in v_types:
-        raise ValueError(f'"{type_str}" is not implemented yet')
-
-    value = str(value).strip()
-
-    return (
-        type_str.startswith('is_num') and value.isnumeric() or
-        type_str.startswith('is_neg') and value.startswith('-') or
-        type_str.startswith('is_fl') and isfloat(value) or
-        type_str.startswith('in_ls') and value in char_list# or
-        #  type_str.startswith('len_g') and len(value) >
-    )
-
-
-
-
 

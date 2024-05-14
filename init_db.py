@@ -8,15 +8,20 @@ TABLES = {
         'default_params': '(salary REAL, bonus REAL, dprise REAL, tax REAL)',
         }
 
+def check_data_in_table(cur, table_name):
+    # Функция получает указатель и имя таблицы
+    # Если есть хоть одна запись - возвращает кортеж, иначе - None
+    return cur.execute('SELECT * FROM ' + table_name).fetchone()
+
 def create_tables(cur):
     # Функция получает объект указателя на БД, создает таблицы и заполняет их при необходимости
     ct = 'CREATE TABLE IF NOT EXISTS'
 
     for t, p in TABLES.items():
         cur.execute(' '. join((ct, t , p)))
-
-    rv = cur.execute('SELECT * FROM default_params').fetchone()
-    if rv is None:
-        cur.execute('INSERT INTO default_params VALUES(49504, 0.15, 0.04, 0.13)')
+    
+    for table in ['default_params']:
+        if check_data_in_table(cur, table) is None:
+            cur.execute('INSERT INTO default_params VALUES(49504, 0.15, 0.04, 0.13)')
 
 

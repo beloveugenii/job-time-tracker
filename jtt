@@ -33,7 +33,7 @@ while True:
 
     # Вывод на экран
     clear()
-    header(' '.join((PROG_NAME, VERSION, ':', pretty_period(current_period))))
+    header(' '.join((PROG_NAME, VERSION + ':', pretty_period(current_period))))
     
     if period_params is not None:
         print_as_table(calculate(period_params, period_data), ' ')
@@ -42,7 +42,7 @@ while True:
     if period_data:
         print_as_table(pretty_period_data(period_data), ' ')
     else: 
-        print('Нет данных за указанный период...')
+        helps(messages['ndip'], 0)
 
     menu(menu_entries, 3)
 
@@ -50,9 +50,10 @@ while True:
 
     action, args = command_parser(''.join([w[0] for w in menu_entries]))
 
-    if action in 'pn': wc = change_period(cur, current_period, action)
+    if action is None: helps(messages['ua'])
+    elif action in 'pn': wc = change_period(cur, current_period, action)
     
-    elif action == 'h': help('main_help')
+    elif action == 'h': helps(messages['main_help'])
 
     elif action == 'a': wc = add_line(cur, args)
 

@@ -1,8 +1,23 @@
 # libsui.py
 
 from os import get_terminal_size
+from time import sleep
+import json
 
-version = '0.0.2.1'
+version = '0.0.2.2'
+
+def helps(*args):
+    # Принимает два параметра: строку для вывода и задержку времени показа сообщения в секундах
+    print(args[0])
+    sleep(args[1]) if len(args) > 1 else input()
+
+
+def get_const(file, key):
+    # Функция принимает имя json-файла и ключ, который нужно экспориторовать
+    # Возвращает кортеж из данных по переданному ключу
+    with open(file) as f:
+        templates = json.load(f)
+    return tuple(templates[key])
 
 def line(): print('-' * get_terminal_size()[0])
 
