@@ -1,0 +1,16 @@
+{
+    "tables": [
+        [
+        "period_data", "(date TEXT, dh REAL, nh REAL)"
+        ],
+        [
+        "period_params", "(period TEXT, salary REAL, first REAL, second REAL, relax REAL, bonus REAL, dprise REAL, tax REAL)"
+        ],
+        [
+        "config", "(selected_period TEXT)"
+        ],
+        [
+        "default_params", "(salary REAL, bonus REAL, dprise REAL, tax REAL)"
+        ]
+    ]
+}

@@ -4,13 +4,13 @@ from os import get_terminal_size
 from time import sleep
 import json
 
-version = '0.0.2.2'
+version = '0.0.2.3'
 
 def helps(*args):
     # Принимает два параметра: строку для вывода и задержку времени показа сообщения в секундах
     print(args[0])
     sleep(args[1]) if len(args) > 1 else input()
-
+    return False
 
 def get_const(file, key):
     # Функция принимает имя json-файла и ключ, который нужно экспориторовать

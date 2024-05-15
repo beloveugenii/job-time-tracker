@@ -6,13 +6,55 @@
         "январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"
     ],
     "menu_entries": [
-        "add", "remove", "configure", "help", "next month", "previous month", "quit"
+        "add", "edit", "remove", "configure", "help", "next month", "previous month", "quit"
     ],
     "days": [
-        "now", "tomorrow", "yesterday"
+        "now", "today", "tomorrow", "yesterday"
     ],
     "holydays": [
         "05-01", "01-01", "05-09", "03-08", "02-23"
-    ]
+    ],
+    "requests": [
+        [
+            "add", "Введите дату, дневные часы, ночные часы: "
+        ], 
+        [
+            "remove", "Введите номер строки для удаления: "
+        ],
+        [
+            "edit", "Введите номер строки для редактирования, дату, дневные и ночные часы: "
+        ]
+    ],
+    "calc_str": [
+        "Оклад", "Д/Ч", "заЧас", "Налог", "ВсегоЧ", "Ночные", "Грязн", "Чист", "Факт"
+    ],
+    "messages": [
+        [
+            "no_line", "No line with entered number"
+        ],
+        [
+            "not_impl", "Not implemented yet"
+        ],
+        [
+            "ua", "Unsupported action"
+        ],
+        [
+            "need_number", "A number is required"
+        ],
+        [
+            "cc", "Can't convert date"
+        ],
+        [
+            "nea", "Not enought arguments"
+        ],
+        [
+            "ndip", "Нет данных за указанный период..."
+        ],
+        [
+            "main_help", "'a' date day hours and night hours you worked\n'c' param value to set or change period parameter to value\n'e' number of line new date day hours night hours\n'r' number of line to remove\n'n' go to the next month\n'p' go to the previous month\n'h' show this help\n'q' quit"
+        ]
 
+
+    ]
 }
+

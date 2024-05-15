@@ -3,10 +3,9 @@
 import sqlite3, readline, sys, re, datetime
 from ui import *
 from libjtt import *
-from init_db import *
 
 PROG_NAME = 'job-time-tracker'
-VERSION = '0.1.1.5'
+VERSION = '0.1.1.6'
 DB_NAME = sys.path[0] + '/data.db'
 
 #  readline.set_completer_delims('\n,')
@@ -51,6 +50,7 @@ while True:
     action, args = command_parser(''.join([w[0] for w in menu_entries]))
 
     if action is None: helps(messages['ua'])
+    
     elif action in 'pn': wc = change_period(cur, current_period, action)
     
     elif action == 'h': helps(messages['main_help'])
@@ -60,6 +60,8 @@ while True:
     elif action == 'q': exit(0)
 
     elif action == 'r': wc = remove_line(cur, period_data, args)
+
+    elif action == 'e': wc = edit_line(cur, period_data, args)
         
     if wc:
         con.commit()

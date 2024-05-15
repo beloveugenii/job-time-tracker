@@ -1,23 +1,21 @@
-# ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+VERSION = '0.0.0.1'
 
-def str_to_float(str=0):
-# Пробуем преобразовать переданную строку в число с точкой
-# Возращает его или 0.0
-    try:
-        str = float(str)
-    except:
-        str = 0.0
+# Функция получает значение и пробует конвертировать его в число с точкой
+def str_to_float(s=0):
+    try: s = float(s)
+    except: s = 0.0
+    return s
 
-    return str
-
+# Функция проверяет, является ли переданное числом с точкой
+# и возвращает логическое значение
 def isfloat(what):
-# Проверяет, что переданное число является числом с точкой
-# Возвращает логическое значение
     if what.startswith('-'):
         what = what[1:]
     parts = what.split('.')
     return len(parts) == 2 and parts[0].isnumeric() and parts[1].isnumeric()
 
+
+# Функция для проверки, является ли значение требуемым типом
 def is_valid(value, type_str, char_list = None):
 
     v_types = ( 'is_number', 'is_num', 'is_float', 'is_fl',
