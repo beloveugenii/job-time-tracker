@@ -1,9 +1,9 @@
-import datetime
+import datetime, sys
 from common import *
 from ui import helps, get_const
 
-STRINGS = 'strings.json'
-TABLES = 'tables.json'
+STRINGS = sys.path[0] + '/strings.json'
+TABLES = sys.path[0] + '/tables.json'
 
 # Получаем строковые данные из файл
 weekdays_names = get_const(STRINGS, 'weekdays_names')
