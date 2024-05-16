@@ -21,3 +21,7 @@ This version is rewritten in Python. It uses SQLite to store data, and translati
 ## Usage
 
 Clone it. Make 'jtt' file executable by 'chmod +x jtt'. Start it and press 'h' for help information.
+
+## Main screen
+
+![jttscreen](https://github.com/beloveugenii/job-time-tracker/assets/110085745/503f407a-ef42-44b8-9e14-218029951fdc)
