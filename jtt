@@ -5,7 +5,7 @@ from ui import *
 from libjtt import *
 
 PROG_NAME = 'job-time-tracker'
-VERSION = '0.1.1.6'
+VERSION = '0.2.0.0'
 DB_NAME = sys.path[0] + '/data.db'
 
 #  readline.set_completer_delims('\n,')
@@ -21,7 +21,6 @@ wc = False
 
 while True:
     current_period, wc = get_current_period(cur)
-    
     period_params, wc = get_period_params(cur, current_period)
     
     if wc:
@@ -43,11 +42,11 @@ while True:
     else: 
         helps(messages['ndip'], 0)
 
-    menu(menu_entries, 3)
+    menu(menu_str, 3)
 
-    readline.set_completer(Completer([item[0] for item in menu_entries] + dd).complete)
+    readline.set_completer(Completer([item[0] for item in menu_str] + dd + changable_params).complete)
 
-    action, args = command_parser(''.join([w[0] for w in menu_entries]))
+    action, args = command_parser(input('>> ').lower().strip().split(' '),''.join([w[0] for w in menu_str]))
 
     if action is None: helps(messages['ua'])
     
@@ -55,14 +54,44 @@ while True:
     
     elif action == 'h': helps(messages['main_help'])
 
-    elif action == 'a': wc = add_line(cur, args)
-
-    elif action == 'q': exit(0)
+    elif action == 'a': wc = add_line(cur, args) 
 
     elif action == 'r': wc = remove_line(cur, period_data, args)
 
     elif action == 'e': wc = edit_line(cur, period_data, args)
+
+    elif action == 'q': exit(0)
+
+    elif action == 'c':
+
+        if args is not None: wc = change_param(cur, current_period, *args)
         
+        else:
+            while True:
+                clear()
+                header('Параметры периода: ' + pretty_period(current_period))
+                print_as_table([(param_str[i], period_params[i]) for i in changable_params], ' ')
+                line()
+            
+                readline.set_completer(Completer(changable_params + ['q', 'h']).complete)
+
+                param, arg = command_parser(input(requests['conf']).lower().strip().split(' '), changable_params + ['q', 'h'])
+
+                if param == 'q': break
+                
+                elif param == 'h': helps(messages['conf'])
+                
+                else:
+                    try:
+                        arg = arg[0]
+                    except:
+                        arg = None
+
+                    wc = change_param(cur, current_period, param, arg)
+                
+                if wc: 
+                    period_params, wc = get_period_params(cur, current_period)
+           
     if wc:
         con.commit()
         wc = not wc

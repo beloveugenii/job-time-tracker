@@ -8,12 +8,15 @@ TABLES = sys.path[0] + '/tables.json'
 # Получаем строковые данные из файл
 weekdays_names = get_const(STRINGS, 'weekdays_names')
 months_names = get_const(STRINGS, 'months_names')
-menu_entries = get_const(STRINGS, 'menu_entries')
+menu_str = get_const(STRINGS, 'menu_str')
 dd = [i for i in get_const(STRINGS, 'days')]
 holydays = get_const(STRINGS, 'holydays')
 requests = dict(get_const(STRINGS, 'requests'))
 messages = dict(get_const(STRINGS, 'messages'))
 tables = dict(get_const(TABLES, 'tables'))
+param_str = dict(get_const(STRINGS, 'param_str'))
+changable_params = [i for i in get_const(STRINGS, 'changable_params')]
+
 
 # Функция возвращает текущие год и мясяц в виде ГГГГ-ММ и логичское значение
 def get_current_period(cur):
@@ -73,12 +76,9 @@ def get_date(d):
         return None
 
 
-# Функция запрашивает ввод от пользователя
-# и возвращает строку (символ команды) и массив (с аргументами команды)
+# Функция возвращает строку (символ команды) и массив (с аргументами команды)
 # При остутствии чего-либо возвращает None
-def command_parser(commands):
-    line = input('>> ').lower().strip().split(' ')
-
+def command_parser(line, commands):
     if line[0] not in commands or line[0] == '':
         return None, None
     elif line[0] in commands:
@@ -217,7 +217,6 @@ def calculate(period_params, period_data):
     if period_params is None:
         return None
 
-    calc_str = get_const(STRINGS, 'calc_str')
     RD = dict()
 
     RD['SALARY'] = period_params['salary']
@@ -239,10 +238,23 @@ def calculate(period_params, period_data):
     RD['CLEAR'] = RD['DIRTY'] - RD['TAX']
 
     return [
-            (f"{calc_str[0]} {int(RD['SALARY'])}", f"{calc_str[1]} {RD['JDAYS']}/{RD['NORM_H']}", f"{calc_str[2]} {RD['PER_HOUR']}"), 
-            (f"{calc_str[3]} {RD['TAX']}", f"{calc_str[4]} {RD['TH']}", f"{calc_str[5]} {RD['NH']}"), 
-            (f"{calc_str[6]} {RD['DIRTY']}", f"{calc_str[7]} {RD['CLEAR']}", f"{calc_str[8]} {RD['FACT']}")
+            (f"{param_str['salary']} {int(RD['SALARY'])}", f"{param_str['dh']} {RD['JDAYS']}/{RD['NORM_H']}", f"{param_str['per_hour']} {RD['PER_HOUR']}"), 
+            (f"{param_str['tax']} {RD['TAX']}", f"{param_str['th']} {RD['TH']}", f"{param_str['nh']} {RD['NH']}"), 
+            (f"{param_str['dirty']} {RD['DIRTY']}", f"{param_str['clear']} {RD['CLEAR']}", f"{param_str['fact']} {RD['FACT']}")
             ]
+
+
+# Функция изменяет в указанном периоде указанный параметр на новое значение
+def change_param(cur, current_period, param=None, arg=None, *trash):
+    trash = []
+    if not is_valid(param, 'in_lst', changable_params):
+        return helps(messages['no_param'])
+
+    if not (is_valid(arg, 'is_num') or is_valid(arg, 'is_float')):
+        return helps(messages['need_number'])
+    
+    return cur.execute("UPDATE period_params SET " + param + " = ? where period == ?", (arg, current_period))
+
 
 # Функция проверяет, есть ли в таблице хоть одна запись
 def check_data_in_table(cur, table_name):

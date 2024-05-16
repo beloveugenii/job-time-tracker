@@ -1,12 +1,15 @@
 {
+    "changable_params": [
+        "salary", "first", "second", "relax", "bonus", "dprise", "tax"
+    ],
     "weekdays_names": [
         "пн", "вт", "ср", "чт", "пт", "сб", "вс"
     ],
     "months_names": [
         "январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"
     ],
-    "menu_entries": [
-        "add", "edit", "remove", "configure", "help", "next month", "previous month", "quit"
+    "menu_str": [
+        "a Добавить", "e Изменить", "r Удалить", "c Параметры", "h Помощь", "n След. период", "p Пред. период", "q Выход"
     ],
     "days": [
         "now", "today", "tomorrow", "yesterday"
@@ -15,46 +18,25 @@
         "05-01", "01-01", "05-09", "03-08", "02-23"
     ],
     "requests": [
-        [
-            "add", "Введите дату, дневные часы, ночные часы: "
-        ], 
-        [
-            "remove", "Введите номер строки для удаления: "
-        ],
-        [
-            "edit", "Введите номер строки для редактирования, дату, дневные и ночные часы: "
-        ]
+        ["add", "Введите дату, дневные часы, ночные часы: "], 
+        ["remove", "Введите номер строки для удаления: "],
+        ["edit", "Введите номер строки для редактирования, дату, дневные и ночные часы: "],
+        ["conf", "Введите название параметра и новое значение: "]
     ],
-    "calc_str": [
-        "Оклад", "Д/Ч", "заЧас", "Налог", "ВсегоЧ", "Ночные", "Грязн", "Чист", "Факт"
+    "param_str": [
+        ["salary", "Оклад"], ["dh", "Д/Ч"], ["per_hour", "заЧас"], ["tax", "Налог"], ["th", "ВсегоЧ"], ["nh", "Ночные"], ["dirty", "Грязн"], ["clear", "Чист"], ["fact", "Факт"], ["first", "За 1ю половину"], ["second", "За 2ю половину"], ["bonus", "Премия"], ["dprise", "За вредность"], ["relax", "Отпускные"]
     ],
     "messages": [
-        [
-            "no_line", "No line with entered number"
-        ],
-        [
-            "not_impl", "Not implemented yet"
-        ],
-        [
-            "ua", "Unsupported action"
-        ],
-        [
-            "need_number", "A number is required"
-        ],
-        [
-            "cc", "Can't convert date"
-        ],
-        [
-            "nea", "Not enought arguments"
-        ],
-        [
-            "ndip", "Нет данных за указанный период..."
-        ],
-        [
-            "main_help", "'a' date day hours and night hours you worked\n'c' param value to set or change period parameter to value\n'e' number of line new date day hours night hours\n'r' number of line to remove\n'n' go to the next month\n'p' go to the previous month\n'h' show this help\n'q' quit"
-        ]
-
-
+        ["no_param", "Неправильный параметр"],
+        ["no_line", "Нет строки с таким номером"],
+        ["not_impl", "Еще не реализовано"],
+        ["ua", "Неподдерживаемое действие"],
+        ["need_number", "Требуется число"],
+        ["cc", "Невозможно получит верную дату"],
+        ["nea", "Недостаточно аргументов"],
+        ["ndip", "Нет данных за указанный период..."],
+        ["main_help", "[a]\tдата дневные_часы ночные_часы\n[e]\tномер_строки дата дневные_часы ночные_часы\n[r]\tномер_строки_для_удаления\n[n]\tследующий_период\n[p]\tпредыдущий_период\n[c]\tпараметр значение\n[h]\tсправка\n[q]\tвыход из программы"],
+        ["conf", "[k v]\tпараметр значение\n[h]\tсправка\n[q]\tвыход из меню"]
     ]
 }
 
