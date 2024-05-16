@@ -24,4 +24,5 @@ Clone it. Make 'jtt' file executable by 'chmod +x jtt'. Start it and press 'h' f
 
 ## Main screen
 
-![jttscreen](https://github.com/beloveugenii/job-time-tracker/assets/110085745/503f407a-ef42-44b8-9e14-218029951fdc)
+![jttscreen](https://github.com/beloveugenii/job-time-tracker/assets/110085745/d9e3f94e-52f2-4acd-9dcd-9aba14bc0435)
+
