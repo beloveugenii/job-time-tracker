@@ -3,12 +3,12 @@
 import sqlite3, readline, sys, re, datetime
 from ui import *
 from libjtt import *
+import completer as c
 
 PROG_NAME = 'job-time-tracker'
-VERSION = '0.2.0.0'
+VERSION = '0.2.0.1'
 DB_NAME = sys.path[0] + '/data.db'
 
-#  readline.set_completer_delims('\n,')
 readline.parse_and_bind('tab: complete')
 
 con = sqlite3.connect(DB_NAME)
@@ -37,55 +37,48 @@ while True:
         print_as_table(calculate(period_params, period_data), ' ')
         line() 
 
-    if period_data:
-        print_as_table(pretty_period_data(period_data), ' ')
-    else: 
-        helps(messages['ndip'], 0)
+    if period_data: print_as_table(pretty_period_data(period_data), ' ')
+    else: helps(messages['ndip'], 0)
 
     menu(menu_str, 3)
 
-    readline.set_completer(Completer([item[0] for item in menu_str] + dd + changable_params).complete)
+    readline.set_completer(c.Completer(
+        {'a': dd, 'p': [], 'n': [],
+        'e': [str(line[0]) for line in period_data] + dd, 'r': [str(line[0]) for line in period_data], 
+        'h': [], 'q': [],'c': changable_params,
+    }).complete)
 
     action, args = command_parser(input('>> ').lower().strip().split(' '),''.join([w[0] for w in menu_str]))
 
     if action is None: helps(messages['ua'])
     
     elif action in 'pn': wc = change_period(cur, current_period, action)
-    
     elif action == 'h': helps(messages['main_help'])
-
     elif action == 'a': wc = add_line(cur, args) 
-
     elif action == 'r': wc = remove_line(cur, period_data, args)
-
     elif action == 'e': wc = edit_line(cur, period_data, args)
-
     elif action == 'q': exit(0)
-
     elif action == 'c':
-
-        if args is not None: wc = change_param(cur, current_period, *args)
-        
+        if args is not None: 
+            wc = change_param(cur, current_period, *args)
         else:
             while True:
                 clear()
                 header('Параметры периода: ' + pretty_period(current_period))
                 print_as_table([(param_str[i], period_params[i]) for i in changable_params], ' ')
                 line()
-            
-                readline.set_completer(Completer(changable_params + ['q', 'h']).complete)
+             
+                readline.set_completer(c.Completer(
+                    dict.fromkeys(changable_params + ['h', 'q'], []
+                )).complete)
 
                 param, arg = command_parser(input(requests['conf']).lower().strip().split(' '), changable_params + ['q', 'h'])
 
                 if param == 'q': break
-                
                 elif param == 'h': helps(messages['conf'])
-                
                 else:
-                    try:
-                        arg = arg[0]
-                    except:
-                        arg = None
+                    try: arg = arg[0]
+                    except: arg = None
 
                     wc = change_param(cur, current_period, param, arg)
                 

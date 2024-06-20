@@ -86,6 +86,19 @@ def command_parser(line, commands):
             return line[0], None
         else:
             return line[0], line[1:]
+#  def command_parser(line, commands):
+    #  c, args = None, []
+
+    #  if len(line) == 0:  return c, args
+
+    #  elif len(line) == 1 and line[0] in commands:
+        #  return line[0], args
+    
+    #  elif len(line) > 1 and line[0] in commands:
+        #  c = line[0]
+        #  args = line[1:].strip().split(' ')
+
+    #  return c, args
 
 
 # Функция изменяет текущий период, записанный в БД

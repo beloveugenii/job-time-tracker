@@ -31,12 +31,6 @@ def save_cursor_pos(): print("\033[s")
 
 def restore_cursor_pos(): print("\033[u")
 
-def promt(what):
-    # takes a string
-    what = str(what)
-    # return gived string in looks 'String: '
-    return input(what[0].upper() + what[1:] + ': ')
-
 def get_fields_len(array):
     # takes a list of tuples
     fields = []
@@ -69,7 +63,7 @@ def get_fields_len(array):
     return fields, sep_len
 
 
-def print_as_table(items, sep):
+def print_as_table(items, sep=' '):
     # takes the list of tuples
     fields, sep_len = get_fields_len(items)
 
@@ -84,7 +78,7 @@ def header(text):
     # takes a string and transform it to list of tuples with single element
     # print a string in center of screen
     line()
-    print_as_table([(text,), ],' ')
+    print_as_table([(text,), ])
     line()
 
 def menu(array, cols):
@@ -110,36 +104,12 @@ def menu(array, cols):
         print_as_table(menu_lst, ' ')
         line()
 
-def screen(header_title, func, menu_lst, menu_cols):
+def screen(header_title, func, menu_lst, menu_cols, promt='>> '):
     # takes a list with header text, some function, menu list and number of menu columns
     # clear the screen and prints header, output of body function and menu
     clear()
     header(header_title)
     func()
     menu(menu_lst, menu_cols)
-
-class Completer():
-    def __init__(self, options):
-        self.options = sorted(options)
-        return
-
-    def complete(self, text, state):
-        response = None
-        if state == 0:
-            # Если какой-то текст передан в метод
-            if text:
-                # вернуть список слов из списка, которые начинаются на текст
-                self.matches = [s for s in self.options if s and s.startswith(text.lstrip())]
-            else:
-                # иначе вернуть весь список
-                self.matches = self.options[:]
-
-        # Вернуть элемент состояния из списка совпадений, если их много. 
-
-        try:
-            response = self.matches[state]
-        except IndexError:
-            response = None
-        return response
-
+    return input(promt).lower().strip()
 
