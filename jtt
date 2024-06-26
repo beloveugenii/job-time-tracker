@@ -6,7 +6,7 @@ from libjtt import *
 import completer as c
 
 PROG_NAME = 'job-time-tracker'
-VERSION = '0.2.0.1'
+VERSION = '0.2.0-2'
 DB_NAME = sys.path[0] + '/data.db'
 
 readline.parse_and_bind('tab: complete')
@@ -50,14 +50,44 @@ while True:
 
     action, args = command_parser(input('>> ').lower().strip().split(' '),''.join([w[0] for w in menu_str]))
 
-    if action is None: helps(messages['ua'])
+    if action is None: 
+        helps(messages['ua'])
     
-    elif action in 'pn': wc = change_period(cur, current_period, action)
-    elif action == 'h': helps(messages['main_help'])
-    elif action == 'a': wc = add_line(cur, args) 
-    elif action == 'r': wc = remove_line(cur, period_data, args)
-    elif action == 'e': wc = edit_line(cur, period_data, args)
-    elif action == 'q': exit(0)
+    elif action in 'pn': 
+        wc = change_period(cur, current_period, action)
+    
+    elif action == 'h': 
+        helps(messages['main_help'])
+    
+    elif action == 'q': 
+        exit(0)
+    
+    elif action == 'a': 
+        readline.set_completer(
+            c.Completer(dict().fromkeys(dd)).complete
+        )
+        wc = add_line(cur, args) 
+    
+    elif action == 'r': 
+        readline.set_completer(
+            c.Completer(
+                dict().fromkeys(
+                    [str(line[0]) for line in period_data]
+                )
+            ).complete
+        )
+        wc = remove_line(cur, period_data, args)
+    
+    elif action == 'e': 
+        readline.set_completer(
+            c.Completer(
+                dict().fromkeys(
+                    [str(line[0]) for line in period_data] + dd
+                )
+            ).complete
+        )
+        wc = edit_line(cur, period_data, args)
+    
     elif action == 'c':
         if args is not None: 
             wc = change_param(cur, current_period, *args)
