@@ -6,7 +6,7 @@ from libjtt import *
 import completer as c
 
 PROG_NAME = 'job-time-tracker'
-VERSION = '0.2.0-2'
+VERSION = '0.2.0-3'
 DB_NAME = sys.path[0] + '/data.db'
 
 readline.parse_and_bind('tab: complete')
@@ -44,7 +44,8 @@ while True:
 
     readline.set_completer(c.Completer(
         {'a': dd, 'p': [], 'n': [],
-        'e': [str(line[0]) for line in period_data] + dd, 'r': [str(line[0]) for line in period_data], 
+         'e': sorted([str(l) for l in range(1, len(period_data) + 1)]) + dd, 
+         'r': sorted([str(l) for l in range(1, len(period_data) + 1)] ), 
         'h': [], 'q': [],'c': changable_params,
     }).complete)
 
