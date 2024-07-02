@@ -1,6 +1,6 @@
 import datetime, sys
 from common import *
-from ui import helps, get_const
+from ui import *
 
 STRINGS = sys.path[0] + '/strings.json'
 TABLES = sys.path[0] + '/tables.json'
@@ -16,6 +16,7 @@ messages = dict(get_const(STRINGS, 'messages'))
 tables = dict(get_const(TABLES, 'tables'))
 param_str = dict(get_const(STRINGS, 'param_str'))
 changable_params = [i for i in get_const(STRINGS, 'changable_params')]
+headers = dict(get_const(STRINGS, 'headers'))
 
 
 # Функция возвращает текущие год и мясяц в виде ГГГГ-ММ и логичское значение
@@ -47,7 +48,7 @@ def get_period_params(cur, current_period):
             cur.execute("INSERT INTO period_params ('period', 'salary', 'bonus', 'dprise', 'tax') VALUES (?, ?, ?, ?, ?)", (current_period, *dp))
             was_changed = True
     
-    return dict(map(lambda *args: args, ('period', 'salary', 'first', 'second', 'relax', 'bonus', 'dprise', 'tax'), res) ), was_changed
+    return dict(map(lambda *args: args, (['period'] + changable_params), res) ), was_changed
 
 
 # Функция возвращает данные за текущий период в виде списка кортежей или None
@@ -283,4 +284,25 @@ def create_tables(cur):
     for table in ['default_params']:
         if check_data_in_table(cur, table) is None:
             cur.execute('INSERT INTO default_params VALUES(49504, 0.15, 0.04, 0.13)')
+
+def conf(cur, current_period, period_params):
+    
+    clear()
+    header(headers['conf'] + pretty_period(current_period))
+    print_as_table([(param_str[i], period_params[i]) for i in changable_params], ' ')
+    line()
+
+    param, arg = command_parser(input(requests['conf']).lower().strip().split(' '), changable_params + ['q', 'h'])
+
+    if param == 'q': 
+        return True, False
+    elif param == 'h': 
+        helps(messages['conf'])
+    else:
+        try: 
+            arg = arg[0]
+        except: 
+            pass
+        
+        return False, change_param(cur, current_period, param, arg)
 

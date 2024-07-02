@@ -1,13 +1,26 @@
 #!/usr/bin/env python3
 
-import sqlite3, readline, sys, re, datetime
+import sqlite3, readline, sys, re, datetime, argparse
 from ui import *
 from libjtt import *
 import completer as c
 
-PROG_NAME = 'job-time-tracker'
-VERSION = '0.2.0-3'
+VERSION = '0.2.1-0'
 DB_NAME = sys.path[0] + '/data.db'
+
+parser = argparse.ArgumentParser(
+        description='A simple program that allows you to keep track of the time worked',
+)
+parser.add_argument(
+        '-v',
+        '--version', 
+        action='version', 
+        version='%(prog)s ' + VERSION, 
+        help='show version and exit'
+)
+
+args = parser.parse_args()
+
 
 readline.parse_and_bind('tab: complete')
 
@@ -31,7 +44,7 @@ while True:
 
     # Вывод на экран
     clear()
-    header(' '.join((PROG_NAME, VERSION + ':', pretty_period(current_period))))
+    header(headers['main'] + ' ' + VERSION + ': ' + pretty_period(current_period))
     
     if period_params is not None:
         print_as_table(calculate(period_params, period_data), ' ')
@@ -43,10 +56,14 @@ while True:
     menu(menu_str, 3)
 
     readline.set_completer(c.Completer(
-        {'a': dd, 'p': [], 'n': [],
+        {'a': dd, 
+         'p': [], 
+         'n': [],
+         'h': [], 
+         'q': [],
+         'c': changable_params,
          'e': sorted([str(l) for l in range(1, len(period_data) + 1)]) + dd, 
          'r': sorted([str(l) for l in range(1, len(period_data) + 1)] ), 
-        'h': [], 'q': [],'c': changable_params,
     }).complete)
 
     action, args = command_parser(input('>> ').lower().strip().split(' '),''.join([w[0] for w in menu_str]))
@@ -72,9 +89,7 @@ while True:
     elif action == 'r': 
         readline.set_completer(
             c.Completer(
-                dict().fromkeys(
-                    [str(line[0]) for line in period_data]
-                )
+                dict().fromkeys([str(line[0]) for line in period_data])
             ).complete
         )
         wc = remove_line(cur, period_data, args)
@@ -82,9 +97,7 @@ while True:
     elif action == 'e': 
         readline.set_completer(
             c.Completer(
-                dict().fromkeys(
-                    [str(line[0]) for line in period_data] + dd
-                )
+                dict().fromkeys([str(line[0]) for line in period_data] + dd)
             ).complete
         )
         wc = edit_line(cur, period_data, args)
@@ -93,29 +106,19 @@ while True:
         if args is not None: 
             wc = change_param(cur, current_period, *args)
         else:
-            while True:
-                clear()
-                header('Параметры периода: ' + pretty_period(current_period))
-                print_as_table([(param_str[i], period_params[i]) for i in changable_params], ' ')
-                line()
-             
-                readline.set_completer(c.Completer(
-                    dict.fromkeys(changable_params + ['h', 'q'], []
-                )).complete)
+            readline.set_completer(c.Completer(
+                dict.fromkeys(changable_params + ['h', 'q'], []
+            )).complete)
+            
+            end_work = False
 
-                param, arg = command_parser(input(requests['conf']).lower().strip().split(' '), changable_params + ['q', 'h'])
-
-                if param == 'q': break
-                elif param == 'h': helps(messages['conf'])
-                else:
-                    try: arg = arg[0]
-                    except: arg = None
-
-                    wc = change_param(cur, current_period, param, arg)
-                
-                if wc: 
+            while not end_work:
+                end_work, wc = conf(cur, current_period, period_params)
+                if wc:
+                    con.commit()
+                    wc = not wc
                     period_params, wc = get_period_params(cur, current_period)
-           
+
     if wc:
         con.commit()
         wc = not wc

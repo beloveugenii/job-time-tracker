@@ -1,4 +1,7 @@
 {
+    "headers": [
+        ["main", "job-time-tracker"], ["conf", "Параметры периода: "]
+    ],
     "changable_params": [
         "salary", "first", "second", "relax", "bonus", "dprise", "tax"
     ],
